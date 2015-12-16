@@ -10,6 +10,7 @@ class Organism:
     self.ID = cellID
     self.fitness = 0
     self.genome = genome
+    self.symbionts = []
     if not self.empty:
       if len(genome):
         self.genome = genome
@@ -26,17 +27,28 @@ class Organism:
         print "fail"
 
   def __repr__(self):
-    info = "empty: " + str(self.empty) + ", ID: " + str(self.ID) + ", genome: " + str(self.genome) + ", fitness: " + str(self.fitness)
+    info = "empty: " + str(self.empty) + ", ID: " + str(self.ID) + ", genome: " + str(self.genome) + ", fitness: " + str(self.fitness) + "\n\tSymbionts:"
+    for symbiont in self.symbionts:
+      info+="\n\t"+symbiont.__repr__()+"\n"
     return info
 
   def update(self):
     '''Updates the organism's fitness based on its age'''
     if not self.empty:
-      self.age += 1
-      cur_gene = self.genome[self.age%len(self.genome)]
-      if cur_gene == 1 or cur_gene == 0:
+      if len(self.symbionts) > 0 and random.random() < mutualism_value:
+        #symbiont gets this update
+        #TODO: Currently there is no conflict between the symbiont and the host since they both get a bonus from the symbiont, I need to figure out how to make the symbiont sometimes able to cheat the host
+        lucky_sym = random.choice(self.symbionts)
+        self.fitness += lucky_sym.update()
+        
+        return True
+      else:
+        self.age += 1
+        cur_gene = self.genome[self.age%len(self.genome)]
         self.fitness += cur_gene
         return True
+    else:
+      return False
       
 
   def mutate(self):
@@ -74,6 +86,53 @@ class Organism:
         neighbor_ids.append(y*world_x+x)
 
     return neighbor_ids
+
+class Symbiont:
+  '''A class to contain a symbiont.
+  TODO: make super class with symbiont and host children'''
+  def __init__(self, cellID, genome=[], parent=False, empty=False):
+    self.age = 0
+    self.ID = cellID
+    self.empty = empty
+    self.fitness = 0
+    self.genome = genome
+    if not self.empty:
+      if len(genome):
+        self.genome = genome
+      elif parent:
+        newGenome =[]
+        for i in range(len(parent.genome)):
+          newGenome.append(parent.genome[i])
+        self.genome = newGenome
+        self.mutate()
+        parent.mutate()
+        parent.fitness = 0
+        parent.age = 0
+      else:
+        print "fail"
+
+  def __repr__(self):
+    info = "empty: " + str(self.empty) + ", ID: " + str(self.ID) + ", genome: " + str(self.genome) + ", fitness: " + str(self.fitness)
+    return info
+
+  def update(self):
+    '''Updates the organism's fitness based on its age'''
+    if not self.empty:
+      self.age += 1
+      cur_gene = self.genome[self.age%len(self.genome)]
+      self.fitness += cur_gene
+      return cur_gene
+      
+
+  def mutate(self):
+    if random.random() < .02:
+      newGenome = self.genome
+      flipBit = random.randint(0, len(newGenome)-1)
+      newGenome[flipBit] = random.randint(0,2)
+      self.genome = newGenome
+    
+
+
         
 class Population:
   '''A class to contain the population and do stuff'''
@@ -88,30 +147,64 @@ class Population:
     '''A function to make a new organism randomly'''
     randomBitArray = numpy.random.randint(2, size=(100,))
     newOrg = Organism(len(self.orgs), genome=list(randomBitArray))
+    if random.random() < .05:
+      #Add a symbiont!
+      randomBitArray2 = numpy.random.randint(3, size=(50,))
+      newSymbiont = Symbiont(newOrg.ID, genome=list(randomBitArray2))
+      newOrg.symbionts.append(newSymbiont)
     return newOrg
+
+  def checkSymbionts(self, org):
+    '''A helper function to check if the symbionts need to be reproduced.'''
+    ## do the orgs symbionts get to reproduce?
+    for symbiont in org.symbionts:
+      if symbiont.fitness >= len(symbiont.genome):
+        #Symbiont reproduction! Horizontal Transmission.
+        newHostID = random.choice(org.findNeighbors())
+        newHost = self.orgs[newHostID]
+        if not newHost.empty:
+          newSymbiont = Symbiont(newHost.ID, parent = symbiont)
+          ##currently only letting there be one symbiont per host, but will change this
+          if len(newHost.symbionts) >0:
+            newHost.symbionts[0] = newSymbiont
+          else:
+            newHost.symbionts.append(newSymbiont)
+    return len(org.symbionts)
+    
+  def reproduceOrg(self, org):
+    '''A helper function to reproduce a host organism.'''
+    ## Time to reproduce
+    ## Returns list of neighbor indices
+    dead_neighbor = False
+    neighbors = org.findNeighbors()
+    for ID in neighbors:
+      if self.orgs[ID].empty:
+        dead_neighbor = ID
+        break
+    if dead_neighbor:
+      position = dead_neighbor
+    else:
+      position = random.choice(neighbors)
+    newOrg = Organism(position, parent = org)
+    ##Vertical transmission of the symbiont time
+    if len(org.symbionts) > 0 and random.random() < vertical_transmission:
+      parentSymbiont = random.choice(org.symbionts)
+      newSymbiont = Symbiont(position, parent=parentSymbiont)
+      newOrg.symbionts.append(newSymbiont)
+    self.orgs.pop(position)
+    self.orgs.insert(position, newOrg)
 
   def update(self):
     '''A function that runs a single update'''
     self.currentUpdate+=1
-#    current_loc = self.currentUpdate%len(self.orgs[0].genome)
+    num_symbionts = 0
     for org in self.orgs:
       if not org.empty:
         result = org.update()
+        num_symbionts += self.checkSymbionts(org)
         if org.fitness >= len(org.genome):
-        ## Returns list of neighbor indices
-          dead_neighbor = False
-          neighbors = org.findNeighbors()
-          for ID in neighbors:
-            if self.orgs[ID].empty:
-              dead_neighbor = ID
-              break
-          if dead_neighbor:
-            position = dead_neighbor
-          else:
-            position = random.choice(org.findNeighbors())
-          newOrg = Organism(position, parent = org)
-          self.orgs.pop(position)
-          self.orgs.insert(position, newOrg)
+          self.reproduceOrg(org)
+    print "Symbionts: ", num_symbionts
 
 
   def findBest(self, orgs_to_eval=False):
@@ -136,6 +229,8 @@ num_updates = 1000
 pop_x = int(sys.argv[1])
 pop_y = int(sys.argv[2])
 pop_size = pop_x*pop_y
+mutualism_value = .6
+vertical_transmission = 1.0
 
 population_orgs = Population(pop_size)
 for i in range(num_updates):
