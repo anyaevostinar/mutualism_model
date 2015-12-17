@@ -281,7 +281,8 @@ if len(sys.argv) == 1 or sys.argv[1] == "--help":
   print "usage: pop_x pop_y seed vert_trans"
 else:
 
-  random.seed(int(sys.argv[3]))
+  seed = int(sys.argv[3])
+  random.seed(seed)
 
   num_updates = 1000
   pop_x = int(sys.argv[1])
@@ -291,7 +292,7 @@ else:
   donation_sd = 0.1
   vertical_transmission = float(sys.argv[4])
   starting_symbiont_proportion = 0.5
-  data_file = open("mutualism.dat", 'w')
+  data_file = open("mutualism_vert"+str(vertical_transmission)+"_"+str(seed)+".dat", 'w')
   data_file.write("Update Donation_Avg Num_Symbionts Num_Hosts Avg_Zeroes\n")
 
   population_orgs = Population(pop_size)
