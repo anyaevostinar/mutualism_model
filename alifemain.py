@@ -272,7 +272,10 @@ class Population:
           if gene == 0:
             zeroes_count += 1
 
-    zeroes_avg = zeroes_count/symbiont_count
+    if symbiont_count == 0:
+      zeroes_avg = 0
+    else:
+      zeroes_avg = zeroes_count/symbiont_count
 
     return (zeroes_avg, symbiont_count)
 
@@ -284,7 +287,7 @@ else:
   seed = int(sys.argv[3])
   random.seed(seed)
 
-  num_updates = 1000
+  num_updates = 20000
   pop_x = int(sys.argv[1])
   pop_y = int(sys.argv[2])
   pop_size = pop_x*pop_y
