@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import random
 import numpy
 import sys
@@ -11,6 +13,7 @@ class Organism:
     self.fitness = 0
     self.genome = genome
     self.symbionts = []
+    self.donation = donation
     if not self.empty:
       if len(genome):
         self.genome = genome
@@ -35,9 +38,8 @@ class Organism:
   def update(self):
     '''Updates the organism's fitness based on its age'''
     if not self.empty:
-      if len(self.symbionts) > 0 and random.random() < mutualism_value:
+      if len(self.symbionts) > 0 and random.random() < self.donation:
         #symbiont gets this update
-        #TODO: Currently there is no conflict between the symbiont and the host since they both get a bonus from the symbiont, I need to figure out how to make the symbiont sometimes able to cheat the host
         lucky_sym = random.choice(self.symbionts)
         self.fitness += lucky_sym.update()
         
@@ -57,6 +59,8 @@ class Organism:
       flipBit = random.randint(0, len(newGenome)-1)
       newGenome[flipBit] = random.randint(0,1)
       self.genome = newGenome
+    if donation_sd:
+      self.donation = numpy.random.normal(self.donation, donation_sd*donation_sd)
     
       
   def findNeighbors(self):
@@ -121,14 +125,30 @@ class Symbiont:
       self.age += 1
       cur_gene = self.genome[self.age%len(self.genome)]
       self.fitness += cur_gene
-      return cur_gene
+      ones = 0
+      zeroes = 0
+      if cur_gene == 0:
+        for g in range(self.age%len(self.genome), 0, -1):
+          if self.genome[g] == 0:
+            zeroes +=1
+          else:
+            break
+        self.fitness += zeroes
+      elif cur_gene == 1:
+        for h in range(self.age%len(self.genome), 0, -1):
+          if self.genome[h] == 1:
+            ones +=1
+          else:
+            break
+
+      return ones
       
 
   def mutate(self):
     if random.random() < .02:
       newGenome = self.genome
       flipBit = random.randint(0, len(newGenome)-1)
-      newGenome[flipBit] = random.randint(0,2)
+      newGenome[flipBit] = random.randint(0,1)
       self.genome = newGenome
     
 
@@ -147,9 +167,9 @@ class Population:
     '''A function to make a new organism randomly'''
     randomBitArray = numpy.random.randint(2, size=(100,))
     newOrg = Organism(len(self.orgs), genome=list(randomBitArray))
-    if random.random() < .05:
+    if random.random() < starting_symbiont_proportion:
       #Add a symbiont!
-      randomBitArray2 = numpy.random.randint(3, size=(50,))
+      randomBitArray2 = numpy.random.randint(2, size=(50,))
       newSymbiont = Symbiont(newOrg.ID, genome=list(randomBitArray2))
       newOrg.symbionts.append(newSymbiont)
     return newOrg
@@ -162,7 +182,7 @@ class Population:
         #Symbiont reproduction! Horizontal Transmission.
         newHostID = random.choice(org.findNeighbors())
         newHost = self.orgs[newHostID]
-        if not newHost.empty:
+        if not newHost.empty and random.random < (1-vertical_transmission):
           newSymbiont = Symbiont(newHost.ID, parent = symbiont)
           ##currently only letting there be one symbiont per host, but will change this
           if len(newHost.symbionts) >0:
@@ -204,7 +224,7 @@ class Population:
         num_symbionts += self.checkSymbionts(org)
         if org.fitness >= len(org.genome):
           self.reproduceOrg(org)
-    print "Symbionts: ", num_symbionts
+    #print "Symbionts: ", num_symbionts
 
 
   def findBest(self, orgs_to_eval=False):
@@ -222,18 +242,65 @@ class Population:
       print "Error! No Org selected!"
     return fittest_org
 
+  def findBestSymbiont(self):
+    orgs_to_eval = self.orgs
+    highest_fitness = 0
+    fittest_org = False
+    for org in orgs_to_eval:
+      if org.symbionts[0].fitness > highest_fitness:
+        highest_fitness = org.symbionts[0].fitness
+        fittest_symbiont = org
+  
+    if not fittest_symbiont:
+      print "Error! No Org selected!"
+    return fittest_symbiont
 
-random.seed(int(sys.argv[3]))
+  def findAverageMutualism(self):
+    sum_mutualism = 0.0
+    for org in self.orgs:
+      sum_mutualism += org.donation
 
-num_updates = 1000
-pop_x = int(sys.argv[1])
-pop_y = int(sys.argv[2])
-pop_size = pop_x*pop_y
-mutualism_value = .6
-vertical_transmission = 1.0
+    return sum_mutualism/len(self.orgs)
 
-population_orgs = Population(pop_size)
-for i in range(num_updates):
-  population_orgs.update()
+  def SymbiontStats(self):
+    zeroes_count = 0.0
+    symbiont_count = 0
+    for org in self.orgs:
+      for symbiont in org.symbionts:
+        symbiont_count += 1
+        for gene in symbiont.genome:
+          if gene == 0:
+            zeroes_count += 1
 
-print population_orgs.findBest()
+    zeroes_avg = zeroes_count/symbiont_count
+
+    return (zeroes_avg, symbiont_count)
+
+
+if len(sys.argv) == 1 or sys.argv[1] == "--help":
+  print "usage: pop_x pop_y seed vert_trans"
+else:
+
+  random.seed(int(sys.argv[3]))
+
+  num_updates = 1000
+  pop_x = int(sys.argv[1])
+  pop_y = int(sys.argv[2])
+  pop_size = pop_x*pop_y
+  donation = 0.6
+  donation_sd = 0.1
+  vertical_transmission = float(sys.argv[4])
+  starting_symbiont_proportion = 0.5
+  data_file = open("mutualism.dat", 'w')
+  data_file.write("Update Donation_Avg Num_Symbionts Num_Hosts Avg_Zeroes\n")
+
+  population_orgs = Population(pop_size)
+  for i in range(num_updates):
+    population_orgs.update()
+    if i%100 == 0:
+      avg_mut = population_orgs.findAverageMutualism()
+      zeroes_avg, symbiont_count = population_orgs.SymbiontStats()
+      data_file.write(str(i)+" "+str(avg_mut)+" "+str(symbiont_count)+" "+str(len(population_orgs.orgs)) +" "+str(zeroes_avg)+"\n")
+
+
+  data_file.close()
