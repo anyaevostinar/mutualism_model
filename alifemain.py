@@ -60,7 +60,7 @@ class Organism:
       newGenome[flipBit] = random.randint(0,1)
       self.genome = newGenome
     if donation_sd:
-      self.donation = numpy.random.normal(self.donation, donation_sd*donation_sd)
+      self.donation = numpy.random.normal(self.donation, donation_sd)
     
       
   def findNeighbors(self):
@@ -99,12 +99,14 @@ class Symbiont:
     self.ID = cellID
     self.empty = empty
     self.fitness = 0
+    self.symbiont_bonus = 0
     self.genome = genome
     if not self.empty:
       if len(genome):
         self.genome = genome
       elif parent:
         newGenome =[]
+        ##newGenome = list(parent.genome)
         for i in range(len(parent.genome)):
           newGenome.append(parent.genome[i])
         self.genome = newGenome
@@ -121,12 +123,20 @@ class Symbiont:
 
   def update(self):
     '''Updates the organism's fitness based on its age'''
+    def countZeroes():
+      '''helper function to count zeroes'''
+      pass
+    def countOnes():
+      '''help function to count ones'''
+      pass
+
     if not self.empty:
       self.age += 1
       cur_gene = self.genome[self.age%len(self.genome)]
       self.fitness += cur_gene
       ones = 0
       zeroes = 0
+      ##Refactor to make functions to do these two things to make it easier to read
       if cur_gene == 0:
         for g in range(self.age%len(self.genome), 0, -1):
           if self.genome[g] == 0:
@@ -140,7 +150,7 @@ class Symbiont:
             ones +=1
           else:
             break
-
+      self.symbiont_bonus += ones
       return ones
       
 
@@ -160,6 +170,10 @@ class Population:
     self.currentUpdate = 0
     self.orgs = []
     self.pop_size = popsize
+    self.vert_trans_count = 0
+    self.hor_trans_count = 0
+    
+
     for i in range(popsize):
       self.orgs.append(self.makeOrg())
 
@@ -182,11 +196,15 @@ class Population:
         #Symbiont reproduction! Horizontal Transmission.
         newHostID = random.choice(org.findNeighbors())
         newHost = self.orgs[newHostID]
-        if not newHost.empty and random.random < (1-vertical_transmission):
+        if not newHost.empty and random.random() < (1-vertical_transmission):
           newSymbiont = Symbiont(newHost.ID, parent = symbiont)
           ##currently only letting there be one symbiont per host, but will change this
           if len(newHost.symbionts) >0:
-            newHost.symbionts[0] = newSymbiont
+            assert len(newHost.symbionts) == 1, "There should be only one symbiont"
+            if random.random() < 0.5:
+              #Symbiont has a 50/50 shot of repelling new symbiont
+              self.hor_trans_count += 1
+              newHost.symbionts[0] = newSymbiont
           else:
             newHost.symbionts.append(newSymbiont)
     return len(org.symbionts)
@@ -208,11 +226,12 @@ class Population:
     newOrg = Organism(position, parent = org)
     ##Vertical transmission of the symbiont time
     if len(org.symbionts) > 0 and random.random() < vertical_transmission:
+      self.vert_trans_count += 1
       parentSymbiont = random.choice(org.symbionts)
       newSymbiont = Symbiont(position, parent=parentSymbiont)
       newOrg.symbionts.append(newSymbiont)
-    self.orgs.pop(position)
-    self.orgs.insert(position, newOrg)
+
+    self.orgs[position] = newOrg
 
   def update(self):
     '''A function that runs a single update'''
@@ -257,27 +276,30 @@ class Population:
 
   def findAverageMutualism(self):
     sum_mutualism = 0.0
+    sum_fitness = 0.0
     for org in self.orgs:
       sum_mutualism += org.donation
+      sum_fitness += org.fitness
 
-    return sum_mutualism/len(self.orgs)
+    mutualism_avg = sum_mutualism/len(self.orgs)
+    fitness_avg = sum_fitness/len(self.orgs)
+    return mutualism_avg, fitness_avg
 
   def SymbiontStats(self):
-    zeroes_count = 0.0
+    bonus_sum = 0.0
     symbiont_count = 0
     for org in self.orgs:
       for symbiont in org.symbionts:
         symbiont_count += 1
-        for gene in symbiont.genome:
-          if gene == 0:
-            zeroes_count += 1
+        bonus_sum += symbiont.symbiont_bonus
+        symbiont.symbiont_bonus = 0
 
     if symbiont_count == 0:
-      zeroes_avg = 0
+      bonus_sum = 0
     else:
-      zeroes_avg = zeroes_count/symbiont_count
+      bonus_avg = bonus_sum/symbiont_count
 
-    return (zeroes_avg, symbiont_count)
+    return (bonus_avg, symbiont_count)
 
 
 if len(sys.argv) == 1 or sys.argv[1] == "--help":
@@ -296,15 +318,16 @@ else:
   vertical_transmission = float(sys.argv[4])
   starting_symbiont_proportion = 0.5
   data_file = open("mutualism_vert"+str(vertical_transmission)+"_"+str(seed)+".dat", 'w')
-  data_file.write("Update Donation_Avg Num_Symbionts Num_Hosts Avg_Zeroes\n")
+  data_file.write("Update Donation_Avg Num_Symbionts Num_Hosts Avg_Symbiont_Bonus Host_Fitness Num_Vert_Trans Num_Hor_Trans\n")
 
   population_orgs = Population(pop_size)
   for i in range(num_updates):
     population_orgs.update()
     if i%100 == 0:
-      avg_mut = population_orgs.findAverageMutualism()
-      zeroes_avg, symbiont_count = population_orgs.SymbiontStats()
-      data_file.write(str(i)+" "+str(avg_mut)+" "+str(symbiont_count)+" "+str(len(population_orgs.orgs)) +" "+str(zeroes_avg)+"\n")
-
+      avg_mut, avg_fit = population_orgs.findAverageMutualism()
+      bonus_avg, symbiont_count = population_orgs.SymbiontStats()
+      data_file.write('{} {} {} {} {} {} {} {}\n'.format(i,avg_mut, symbiont_count,len(population_orgs.orgs), bonus_avg, avg_fit, population_orgs.vert_trans_count, population_orgs.hor_trans_count))
+      population_orgs.vert_trans_count = 0
+      population_orgs.hor_trans_count = 0
 
   data_file.close()
