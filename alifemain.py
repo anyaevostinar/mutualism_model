@@ -105,11 +105,7 @@ class Symbiont:
       if len(genome):
         self.genome = genome
       elif parent:
-        newGenome =[]
-        ##newGenome = list(parent.genome)
-        for i in range(len(parent.genome)):
-          newGenome.append(parent.genome[i])
-        self.genome = newGenome
+        self.genome = list(parent.genome)
         self.mutate()
         parent.mutate()
         parent.fitness = 0
