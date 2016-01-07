@@ -22,6 +22,7 @@ class Organism:
         for i in range(len(parent.genome)):
           newGenome.append(parent.genome[i])
         self.genome = newGenome
+        self.donation = parent.donation
         self.mutate()
         parent.mutate()
         parent.fitness = 0
@@ -119,34 +120,39 @@ class Symbiont:
 
   def update(self):
     '''Updates the organism's fitness based on its age'''
+
+
     def countZeroes():
       '''helper function to count zeroes'''
       pass
+
     def countOnes():
       '''help function to count ones'''
       pass
 
     if not self.empty:
       self.age += 1
-      cur_gene = self.genome[self.age%len(self.genome)]
-      self.fitness += cur_gene
       ones = 0
       zeroes = 0
-      ##Refactor to make functions to do these two things to make it easier to read
+      cur_gene = self.genome[self.age%len(self.genome)]
+      self.fitness += cur_gene
       if cur_gene == 0:
         for g in range(self.age%len(self.genome), 0, -1):
           if self.genome[g] == 0:
             zeroes +=1
           else:
             break
+
         self.fitness += zeroes
+
       elif cur_gene == 1:
         for h in range(self.age%len(self.genome), 0, -1):
           if self.genome[h] == 1:
             ones +=1
           else:
             break
-      self.symbiont_bonus += ones
+
+        self.symbiont_bonus += ones
       return ones
       
 
