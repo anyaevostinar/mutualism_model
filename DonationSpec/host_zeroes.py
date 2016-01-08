@@ -335,7 +335,7 @@ else:
 
   seed = int(sys.argv[3])
   random.seed(seed)
-
+  numpy.random.rseed(seed)
   num_updates = 20000
   pop_x = int(sys.argv[1])
   pop_y = int(sys.argv[2])
