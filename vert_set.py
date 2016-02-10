@@ -70,7 +70,7 @@ class Organism:
       newGenome[flipBit] = random.randint(0,1)
       self.genome = newGenome
     if vert_sd:
-      self.vert_sd = numpy.random.normal(self.vert_trans, vert_sd)
+      self.vert_trans = numpy.random.normal(self.vert_trans, vert_sd)
     
       
   def findNeighbors(self):
