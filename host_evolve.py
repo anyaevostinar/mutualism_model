@@ -349,7 +349,7 @@ else:
   symbiont_mutualism = int(sys.argv[6])
 
   starting_symbiont_proportion = 0.5
-  data_file = open("host_evolve"+sys.argv[4]+"_"+sys.argv[5]+"_"+str(seed)+".dat", 'w')
+  data_file = open("host_evolve"+sys.argv[4]+"_"+sys.argv[5]+"_"+sys.argv[6]+"_"+str(seed)+".dat", 'w')
   data_file.write("Update Vert_Avg Num_Symbionts Num_Hosts Symbiont_Bonus_Prop Host_Fitness Num_Vert_Trans Num_Hor_Trans\n")
 
   population_orgs = Population(pop_size)
