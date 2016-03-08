@@ -189,7 +189,8 @@ class Population:
 
   def makeOrg(self):
     '''A function to make a new organism randomly'''
-    randomBitArray = numpy.random.randint(2, size=(100,))
+    #Host can't be random since we need them all the same
+    randomBitArray = numpy.array([0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1])
     newOrg = Organism(len(self.orgs), genome=list(randomBitArray))
     if random.random() < starting_symbiont_proportion:
       #Add a symbiont!
