@@ -293,15 +293,20 @@ class Population:
   def findAverageMutualism(self):
     sum_mutualism = 0.0
     sum_fitness = 0.0
+    sum_donation = 0.0
     org_count = 0
     for org in self.orgs:
       sum_mutualism += org.vert_trans
       sum_fitness += org.fitness
+      sum_donation += org.donation
       org_count += 1
 
-    mutualism_avg = sum_mutualism/len(self.orgs)
-    fitness_avg = sum_fitness/len(self.orgs)
-    return mutualism_avg, fitness_avg
+
+    total = len(self.orgs)
+    mutualism_avg = sum_mutualism/total
+    fitness_avg = sum_fitness/total
+    donation_avg = sum_donation/total
+    return mutualism_avg, fitness_avg, donation_avg
 
   def SymbiontStats(self):
     bonus_sum = 0.0
@@ -343,16 +348,16 @@ else:
 
   starting_symbiont_proportion = 0.5
   data_file = open("sym_evolve"+sys.argv[4]+"_"+sys.argv[5]+"_"+str(seed)+".dat", 'w')
-  data_file.write("Update Vert_Avg Num_Symbionts Num_Hosts Symbiont_Bonus_Prop Host_Fitness Num_Vert_Trans Num_Hor_Trans\n")
+  data_file.write("Update Vert_Avg Num_Symbionts Num_Hosts Symbiont_Bonus_Prop Host_Fitness Num_Vert_Trans Num_Hor_Trans Donation_Avg\n")
 
   population_orgs = Population(pop_size)
   for i in range(num_updates):
     population_orgs.update()
     if i%100 == 0:
 #      print "Update: ", i
-      avg_mut, avg_fit = population_orgs.findAverageMutualism()
+      avg_mut, avg_fit, avg_donation = population_orgs.findAverageMutualism()
       bonus_avg, symbiont_count = population_orgs.SymbiontStats()
-      data_file.write('{} {} {} {} {} {} {} {}\n'.format(i,avg_mut, symbiont_count,len(population_orgs.orgs), bonus_avg, avg_fit, population_orgs.vert_trans_count, population_orgs.hor_trans_count))
+      data_file.write('{} {} {} {} {} {} {} {} {}\n'.format(i,avg_mut, symbiont_count,len(population_orgs.orgs), bonus_avg, avg_fit, population_orgs.vert_trans_count, population_orgs.hor_trans_count, avg_donation))
       population_orgs.vert_trans_count = 0
       population_orgs.hor_trans_count = 0
 
