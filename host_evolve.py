@@ -192,8 +192,8 @@ class Population:
     randomBitArray = numpy.random.randint(2, size=(100,))
     newOrg = Organism(len(self.orgs), genome=list(randomBitArray))
     if random.random() < starting_symbiont_proportion:
-      #Add a symbiont!
-      randomBitArray2 = numpy.random.randint(2, size=(50,))
+      #Add a symbiont! Can't be random since we want every one the same
+      randomBitArray2 = numpy.array([1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1])
       #Making symbiont more mutualistic or parasitic based on setting
       if symbiont_mutualism > 0:
         randomBitArray[0:symbiont_mutualism]=1
