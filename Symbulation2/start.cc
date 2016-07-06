@@ -26,16 +26,16 @@ struct Symbiont {
 
 };
 
-float Symbiont::update(float res) {
+float Symbiont::update(float res, int rate) {
   //Sym receives some resources from host and can return some back
   //cout << "updating a sym, yey!" << endl;
-  float returned = (res*donation)*10;
+  float returned = (res*donation)*rate;
   points += res - returned;
   return returned;
 }
 
-void Symbiont::mutate(std::default_random_engine& r){
-  std::normal_distribution<double> dist(0.5, 0.1);
+void Symbiont::mutate(std::default_random_engine& r, double rate){
+  std::normal_distribution<double> dist(0.5, rate);
   double mutation = dist(r); // pull from dist
   donation = (2*donation)/(1+2*mutation);
   if(donation > 1) donation = 1;
@@ -74,7 +74,7 @@ void Host::birth(Host parent) {
   sym = Symbiont();
 }
 
-void Host::update() {
+void Host::update(int sym_mult) {
   if(sym.donation != -1) {
     //Host donates resources to sym based on donation amount,
     // sym returns some of the resources if it chooses to
@@ -83,7 +83,7 @@ void Host::update() {
     //Resources not being donated to sym
     points += (5-donation*5);
     //Resources being donated to sym and possibly some back
-    points += sym.update(donation*5 + 5);
+    points += sym.update(donation*5 + 5, sym_mult);
   }
   else points++;
 }
@@ -114,10 +114,10 @@ int Host::chooseNeighbor(std::default_random_engine &r){
   return neighbors[0];
 }
 
-void Host::mutate(std::default_random_engine& r){
+void Host::mutate(std::default_random_engine& r, double rate){
 
   //Mutate function that moves toward .5 courtesty of Bob
-  std::normal_distribution<double> dist(0.5, 0.1);
+  std::normal_distribution<double> dist(0.5, rate);
   double mutation = dist(r); // pull from dist
   donation = (2*donation)/(1+2*mutation);
   if (donation > 1) donation = 1;
@@ -133,6 +133,9 @@ struct Population{
   int seed;
   int final_update;
   int cur_update;
+  float vert_rate; // Vertical transmission rate
+  float mut_rate; // Mutation Rate
+  int sym_mult; // Multiplication factor for symbionts
   std::default_random_engine engine;
   std::ofstream data_file;
   
@@ -204,7 +207,7 @@ void Population::evolve(){
     for(auto &org : pop) {
       //Run host and sym updates
       
-      org.update();
+      org.update(sym_mult);
       //cout << "updated an org " << org.donation << " " << org.sym.donation << endl;
       }
     
@@ -227,17 +230,17 @@ void Population::evolve(){
       if (org.points >=50){
         //cout << "Making a host baby!" << endl;
         Host baby(org.donation, 0.0, Symbiont(), -1);
-        if(dist(engine) < 0.5){
+        if(dist(engine) < vert_rate){
           //Vertical transmission, TODO: put sym repro in a function
           Symbiont s_baby(org.sym);
-          s_baby.mutate(engine);
-          org.sym.mutate(engine);
+          s_baby.mutate(engine, mut_rate);
+          org.sym.mutate(engine, mut_rate);
           baby.sym = s_baby;
         }
 
         //Mutate both and reset and place
-        baby.mutate(engine);
-        org.mutate(engine);
+        baby.mutate(engine, mut_rate);
+        org.mutate(engine, mut_rate);
         int squashed = org.chooseNeighbor(engine);
         baby.cell_id = squashed;
         pop[squashed] = baby;
@@ -253,10 +256,13 @@ void Population::evolve(){
 
 
 int main(int argc, char *argv[]) {
-  if (argc < 2) cout << "Usage: seed" << endl;
+  if (argc < 5) cout << "Usage: seed mut mult vert" << endl;
   else{
   int seed = atoi(argv[1]);
   Population pop(10000, 1000, seed);
+  pop.mut_rate = atof(argv[2]);
+  pop.sym_mult = atoi(argv[3]);
+  pop.vert_rate = atof(argv[4]);
   pop.evolve();}
 
 
