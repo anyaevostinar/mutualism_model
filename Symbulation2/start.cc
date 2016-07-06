@@ -3,6 +3,7 @@
 #include<iostream>
 #include<assert.h>
 #include<fstream>
+#include<algorithm>
 
 using std::cout; using std::endl;
 using std::vector;
