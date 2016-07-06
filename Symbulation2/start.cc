@@ -178,7 +178,7 @@ Population::Population(int pop_count, int f, int seed_i) {
   final_update = f;
   cur_update = 0;
   seed = seed_i;
-  data_file.open("avg_donation_"+std::to_string(seed)+".csv", std::ofstream::ate);
+  data_file.open("avg_donation_"+std::to_string(seed)+"_"+std::to_string(mut_rate)+"_"+std::to_string(sym_mult)+"_"+std::to_string(vert_rate)+".csv", std::ofstream::ate);
   data_file << "Update, Host_Donation, Sym_Donation, Host_Count, Sym_Count" << endl << std::flush;
 
   std::default_random_engine engine(seed);
