@@ -137,6 +137,7 @@ struct Population{
   float vert_rate; // Vertical transmission rate
   float mut_rate; // Mutation Rate
   int sym_mult; // Multiplication factor for symbionts
+  float start_rate; // Donation rate the initial orgs start at
   std::default_random_engine engine;
   std::ofstream data_file;
   
@@ -189,8 +190,8 @@ void Population::init_pop(int pop_count) {
 
   assert(pop_count == POP_X * POP_Y);
   for(int i=0; i<pop_count; ++i){
-    Symbiont new_sym(0.5);
-    Host new_org(0.5, new_sym, i);
+    Symbiont new_sym(start_rate);
+    Host new_org(start_rate, new_sym, i);
     //cout << "new org!" << new_org.sym.donation << endl;
     pop.push_back(new_org);
     //cout << "inserted new org!" << pop[-1].sym.donation << endl;
@@ -257,13 +258,14 @@ void Population::evolve(){
 
 
 int main(int argc, char *argv[]) {
-  if (argc < 5) cout << "Usage: seed mut mult vert" << endl;
+  if (argc < 6) cout << "Usage: seed mut mult vert start" << endl;
   else{
   int seed = atoi(argv[1]);
   Population pop(10000, 1000, seed);
   pop.mut_rate = atof(argv[2]);
   pop.sym_mult = atoi(argv[3]);
   pop.vert_rate = atof(argv[4]);
+  pop.start_rate = atof(argv[5]);
   pop.evolve();}
 
 
