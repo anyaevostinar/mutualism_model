@@ -1,0 +1,84 @@
+#include<random>
+#include<vector>
+using std::vector;
+
+struct Symbiont {
+  float donation;
+  float points;
+
+  Symbiont() = default;
+  Symbiont(float d, float p) : donation(d), points(p) {};
+  Symbiont(float d) : donation(d), points(0.0) {};
+
+  float update(float);
+
+};
+
+//Host struct
+struct Host {
+  float donation;
+  float points;
+  Symbiont* sym;
+  int cell_id;
+  
+
+  Host() = delete;
+  Host(float d, float p, Symbiont* s, int id) : donation(d), points(p), sym(s), cell_id(id) {};
+  Host(float d, Symbiont *s, int id) : donation(d), points(0.0), sym(s), cell_id(id) {};
+
+  void update();
+  
+};
+
+struct Population{
+  vector<Host*> pop;
+  int final_update;
+  int cur_update;
+
+  Population() : final_update(100) {};
+  Population(int pop_count, int f) : final_update(f), cur_update(0)
+  {init_pop(pop_count);};
+
+  void init_pop(int pop_count);
+  void evolve();
+
+
+};
+
+float Symbiont::update(float res) {
+  //Sym receives some resources from host and can return some back
+  float returned = (res*donation)*2;
+  points += res - returned;
+  return returned;
+}
+
+void Host::update() {
+  if(sym != nullptr) {
+    //Host donates resources to sym based on donation amount,
+    // sym returns some of the resources if it chooses to
+    //Sym always gets 5 units
+
+    //Resources not being donated to sym
+    points += (5-donation*5);
+    //Resources being donated to sym and possibly some back
+    points += sym->update(donation*5 + 5);
+  }
+}
+
+void Population::init_pop(int pop_count) {
+  for(int i=0; i<pop_count; ++i){
+    Symbiont new_sym(0.5);
+    Host new_org(0.5, &new_sym, i);
+    pop.push_back(&new_org);
+  }
+}
+
+void Population::evolve(){
+
+}
+
+
+
+int main() {
+
+}
