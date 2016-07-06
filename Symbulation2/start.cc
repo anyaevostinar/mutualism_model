@@ -21,8 +21,8 @@ struct Symbiont {
   Symbiont(Symbiont &parent) : donation(parent.donation), points(0.0) {};
   Symbiont(const Symbiont& orig) : donation(orig.donation), points(orig.points) {};
 
-  float update(float);
-  void mutate(std::default_random_engine& r);
+  float update(float, int);
+  void mutate(std::default_random_engine& r, float);
 
 
 };
@@ -35,7 +35,7 @@ float Symbiont::update(float res, int rate) {
   return returned;
 }
 
-void Symbiont::mutate(std::default_random_engine& r, double rate){
+void Symbiont::mutate(std::default_random_engine& r, float rate){
   std::normal_distribution<double> dist(0.5, rate);
   double mutation = dist(r); // pull from dist
   donation = (2*donation)/(1+2*mutation);
@@ -61,9 +61,9 @@ struct Host {
   Host(float d, Symbiont s, int id) : donation(d), points(0.0), sym(s), cell_id(id) {};
   Host(const Host &orig) : donation(orig.donation), points(orig.points), cell_id(orig.cell_id), sym(orig.sym) {};
 
-  void update();
+  void update(int);
   int chooseNeighbor(std::default_random_engine&);
-  void mutate(std::default_random_engine&);
+  void mutate(std::default_random_engine&, double);
   void birth(Host);
   
 };
@@ -221,8 +221,8 @@ void Population::evolve(){
         //Baby sym!
         Symbiont baby(parent);
         //Mutate both and reset and place
-        baby.mutate(engine);
-        parent.mutate(engine);
+        baby.mutate(engine, mut_rate);
+        parent.mutate(engine, mut_rate);
         int infected = org.chooseNeighbor(engine);
         pop[infected].sym = baby;
 	
