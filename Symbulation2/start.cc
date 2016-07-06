@@ -179,8 +179,7 @@ Population::Population(int pop_count, int f, int seed_i) {
   final_update = f;
   cur_update = 0;
   seed = seed_i;
-  data_file.open("avg_donation_"+std::to_string(seed)+"_mut"+std::to_string(mut_rate)+"_mult"+std::to_string(sym_mult)+"_vert"+std::to_string(vert_rate)+".csv", std::ofstream::ate);
-  data_file << "Update, Host_Donation, Sym_Donation, Host_Count, Sym_Count" << endl << std::flush;
+
 
   std::default_random_engine engine(seed);
   init_pop(pop_count);
@@ -200,7 +199,19 @@ void Population::init_pop(int pop_count) {
 }
 
 void Population::evolve(){
+  std::string str_seed = std::to_string(seed);
+  std::string str_mut = std::to_string(mut_rate);
+  str_mut.erase ( str_mut.find_last_not_of('0') + 1, std::string::npos );
+  std::string str_mult = std::to_string(sym_mult);
+  str_mult.erase ( str_mult.find_last_not_of('0') + 1, std::string::npos );
+  std::string str_vert = std::to_string(vert_rate);
+  str_vert.erase ( str_vert.find_last_not_of('0') + 1, std::string::npos );
+  std::string str_start = std::to_string(start_rate);
+  str_start.erase ( str_start.find_last_not_of('0') + 1, std::string::npos );
   
+  
+  data_file.open("avg_donation_"+str_seed+"_mut"+str_mut+"_mult"+str_mult+"_vert"+str_vert+"_start"+str_start+".csv", std::ofstream::ate);
+  data_file << "Update, Host_Donation, Sym_Donation, Host_Count, Sym_Count" << endl << std::flush;
   std::uniform_real_distribution<double> dist(0, 1);
 
   for(cur_update = 0; cur_update < final_update; ++cur_update){
