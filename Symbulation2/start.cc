@@ -200,7 +200,7 @@ void Population::init_pop(int pop_count) {
 
 void Population::evolve(){
   
-  std::uniform_real_distribution<long> dist(0, 1);
+  std::uniform_real_distribution<double> dist(0, 1);
 
   for(cur_update = 0; cur_update < final_update; ++cur_update){
     //cout << "updating orgs" << endl;
