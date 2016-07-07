@@ -143,7 +143,7 @@ struct Population{
   
 
   Population() : final_update(1) {};
-  Population(int pop_count, int f, int seed);
+  Population(int pop_count, int f, int seed, float start_rate);
 
   void init_pop(int pop_count);
   void evolve();
@@ -175,10 +175,11 @@ void Population::print_stats() {
   
 }
 
-Population::Population(int pop_count, int f, int seed_i) {
+Population::Population(int pop_count, int f, int seed_i, float start) {
   final_update = f;
   cur_update = 0;
   seed = seed_i;
+  start_rate = start;
 
 
   std::default_random_engine engine(seed);
@@ -188,6 +189,7 @@ Population::Population(int pop_count, int f, int seed_i) {
 void Population::init_pop(int pop_count) {
 
   assert(pop_count == POP_X * POP_Y);
+  //cout << "start_rate" << start_rate << endl;
   for(int i=0; i<pop_count; ++i){
     Symbiont new_sym(start_rate);
     Host new_org(start_rate, new_sym, i);
@@ -272,11 +274,13 @@ int main(int argc, char *argv[]) {
   if (argc < 6) cout << "Usage: seed mut mult vert start" << endl;
   else{
   int seed = atoi(argv[1]);
-  Population pop(10000, 1000, seed);
+
+  Population pop(10000, 10, seed, atof(argv[5]));
   pop.mut_rate = atof(argv[2]);
   pop.sym_mult = atoi(argv[3]);
   pop.vert_rate = atof(argv[4]);
-  pop.start_rate = atof(argv[5]);
+
+  cout << pop.start_rate << endl;
   pop.evolve();}
 
 
