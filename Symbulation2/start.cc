@@ -205,7 +205,7 @@ void Population::evolve(){
   std::string str_mut = std::to_string(mut_rate);
   str_mut.erase ( str_mut.find_last_not_of('0') + 1, std::string::npos );
   std::string str_mult = std::to_string(sym_mult);
-  str_mult.erase ( str_mult.find_last_not_of('0') + 1, std::string::npos );
+  //str_mult.erase ( str_mult.find_last_not_of('0') + 1, std::string::npos );
   std::string str_vert = std::to_string(vert_rate);
   str_vert.erase ( str_vert.find_last_not_of('0') + 1, std::string::npos );
   std::string str_start = std::to_string(start_rate);
@@ -275,7 +275,7 @@ int main(int argc, char *argv[]) {
   else{
   int seed = atoi(argv[1]);
 
-  Population pop(10000, 10, seed, atof(argv[5]));
+  Population pop(10000, 10000, seed, atof(argv[5]));
   pop.mut_rate = atof(argv[2]);
   pop.sym_mult = atoi(argv[3]);
   pop.vert_rate = atof(argv[4]);
