@@ -90,7 +90,6 @@ void Host::update(int sym_mult) {
 }
 
 int Host::chooseNeighbor(std::default_random_engine &r){
-  //TODO: Write this function yey
   int radius = 1;
   int cell_x = cell_id % POP_X;
   int cell_y = (cell_id - cell_x)/POP_X;
@@ -229,7 +228,7 @@ void Population::evolve(){
     //Go around again for reproduction
     for(auto &org : pop) {
       //See if sym reproduces
-      if ((org.sym.donation > -1) && (org.sym.points>=50)){
+      if ((org.sym.donation > -1) && (org.sym.points>=25)){
         //cout << "Making a baby!" << endl;
         Symbiont &parent = org.sym;
         //Baby sym!
@@ -238,7 +237,8 @@ void Population::evolve(){
         baby.mutate(engine, mut_rate);
         parent.mutate(engine, mut_rate);
         int infected = org.chooseNeighbor(engine);
-        pop[infected].sym = baby;
+	if(pop[infected].sym.donation == -1)
+	  pop[infected].sym = baby;
 	
       }
       //See if host reproduces
