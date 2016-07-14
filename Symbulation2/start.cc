@@ -30,9 +30,9 @@ struct Symbiont {
 float Symbiont::update(float res, int rate) {
   //Sym receives some resources from host and can return some back
   //cout << "updating a sym, yey!" << endl;
-  float returned = (res*donation)*rate;
-  points += res - returned;
-  return returned;
+  float returned = (res*donation);
+  points += (res - returned);
+  return returned*rate;
 }
 
 void Symbiont::mutate(std::default_random_engine& r, float rate){
@@ -153,7 +153,7 @@ struct Population{
 
 
 void Population::print_stats() {
-  cout << cur_update << endl;
+  //  cout << cur_update << endl;
   double host_sum = 0.0;
   double sym_sum = 0.0;
   int host_count = 0;
@@ -168,7 +168,7 @@ void Population::print_stats() {
     }
   }
   
-  
+  //cout << cur_update <<", "<< host_sum/host_count << ", " << sym_sum/sym_count << ", " << host_count << ", " << sym_count << endl <<std::flush;
   data_file << cur_update <<", "<< host_sum/host_count << ", " << sym_sum/sym_count << ", " << host_count << ", " << sym_count << endl <<std::flush;
 
   
@@ -228,8 +228,9 @@ void Population::evolve(){
     //Go around again for reproduction
     for(auto &org : pop) {
       //See if sym reproduces
-      if ((org.sym.donation > -1) && (org.sym.points>=25)){
-        //cout << "Making a baby!" << endl;
+      //cout << "sym here: " << org.sym.donation << " " << org.sym.points << endl;
+      if ((org.sym.donation > -1) && (org.sym.points>=250)){
+        //cout << "Making a sym baby!" << endl;
         Symbiont &parent = org.sym;
         //Baby sym!
         Symbiont baby(parent);
@@ -238,11 +239,12 @@ void Population::evolve(){
         parent.mutate(engine, mut_rate);
         int infected = org.chooseNeighbor(engine);
 	if(pop[infected].sym.donation == -1)
+	  //cout << "baby sym survives!" << endl;
 	  pop[infected].sym = baby;
 	
       }
       //See if host reproduces
-      if (org.points >=50){
+      if (org.points >=500){
         //cout << "Making a host baby!" << endl;
         Host baby(org.donation, 0.0, Symbiont(), -1);
         if(dist(engine) < vert_rate){
@@ -253,6 +255,7 @@ void Population::evolve(){
           baby.sym = s_baby;
         }
 
+	//cout << "host baby has sym: " << baby.sym.donation << endl;
         //Mutate both and reset and place
         baby.mutate(engine, mut_rate);
         org.mutate(engine, mut_rate);
@@ -275,7 +278,7 @@ int main(int argc, char *argv[]) {
   else{
   int seed = atoi(argv[1]);
 
-  Population pop(10000, 10000, seed, atof(argv[5]));
+  Population pop(10000, 100000, seed, atof(argv[5]));
   pop.mut_rate = atof(argv[2]);
   pop.sym_mult = atoi(argv[3]);
   pop.vert_rate = atof(argv[4]);
