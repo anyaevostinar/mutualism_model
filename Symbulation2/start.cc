@@ -229,7 +229,7 @@ void Population::evolve(){
     for(auto &org : pop) {
       //See if sym reproduces
       //cout << "sym here: " << org.sym.donation << " " << org.sym.points << endl;
-      if ((org.sym.donation > -1) && (org.sym.points>=250)){
+      if ((org.sym.donation > -1) && (org.sym.points>=100)){
         //cout << "Making a sym baby!" << endl;
         Symbiont &parent = org.sym;
         //Baby sym!
