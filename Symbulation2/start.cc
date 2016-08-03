@@ -22,7 +22,7 @@ struct Symbiont {
   Symbiont(const Symbiont& orig) : donation(orig.donation), points(orig.points) {};
 
   float update(float, int);
-  void mutate(std::default_random_engine& r, float);
+  void mutate(std::mt19937& r, float);
 
 
 };
@@ -35,7 +35,7 @@ float Symbiont::update(float res, int rate) {
   return returned*rate;
 }
 
-void Symbiont::mutate(std::default_random_engine& r, float rate){
+void Symbiont::mutate(std::mt19937& r, float rate){
   std::normal_distribution<double> dist(0.5, rate);
   double mutation = dist(r); // pull from dist
   donation = (2*donation)/(1+2*mutation);
@@ -62,8 +62,8 @@ struct Host {
   Host(const Host &orig) : donation(orig.donation), points(orig.points), cell_id(orig.cell_id), sym(orig.sym) {};
 
   void update(int);
-  int chooseNeighbor(std::default_random_engine&);
-  void mutate(std::default_random_engine&, double);
+  int chooseNeighbor(std::mt19937&);
+  void mutate(std::mt19937&, double);
   void birth(Host);
   
 };
@@ -89,7 +89,7 @@ void Host::update(int sym_mult) {
   else points++;
 }
 
-int Host::chooseNeighbor(std::default_random_engine &r){
+int Host::chooseNeighbor(std::mt19937 &r){
   int radius = 1;
   int cell_x = cell_id % POP_X;
   int cell_y = (cell_id - cell_x)/POP_X;
@@ -114,10 +114,11 @@ int Host::chooseNeighbor(std::default_random_engine &r){
   return neighbors[0];
 }
 
-void Host::mutate(std::default_random_engine& r, double rate){
+void Host::mutate(std::mt19937& r, double rate){
 
   //Mutate function that moves toward .5 courtesty of Bob
   std::normal_distribution<double> dist(0.5, rate);
+
   double mutation = dist(r); // pull from dist
   donation = (2*donation)/(1+2*mutation);
   if (donation > 1) donation = 1;
@@ -137,7 +138,7 @@ struct Population{
   float mut_rate; // Mutation Rate
   int sym_mult; // Multiplication factor for symbionts
   float start_rate; // Donation rate the initial orgs start at
-  std::default_random_engine engine;
+  std::mt19937 engine;
   std::ofstream data_file;
   
 
@@ -181,7 +182,7 @@ Population::Population(int pop_count, int f, int seed_i, float start) {
   start_rate = start;
 
 
-  std::default_random_engine engine(seed);
+
   init_pop(pop_count);
 }
 
@@ -213,7 +214,9 @@ void Population::evolve(){
   
   data_file.open("avg_donation_"+str_seed+"_mut"+str_mut+"_mult"+str_mult+"_vert"+str_vert+"_start"+str_start+".csv", std::ofstream::ate);
   data_file << "Update, Host_Donation, Sym_Donation, Host_Count, Sym_Count" << endl << std::flush;
+  std::mt19937 engine(seed);
   std::uniform_real_distribution<double> dist(0, 1);
+
 
   for(cur_update = 0; cur_update < final_update; ++cur_update){
     //cout << "updating orgs" << endl;
@@ -283,7 +286,6 @@ int main(int argc, char *argv[]) {
   pop.sym_mult = atoi(argv[3]);
   pop.vert_rate = atof(argv[4]);
 
-  cout << pop.start_rate << endl;
   pop.evolve();}
 
 
