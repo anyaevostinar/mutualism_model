@@ -251,7 +251,7 @@ void Population::evolve(){
       if (org.points >=500){
         //cout << "Making a host baby!" << endl;
         Host baby(org.donation, 0.0, Symbiont(), -1);
-        if(org.sym.points >= (rec_res/1.0) && dist(engine) < vert_rate){
+        if(org.sym.points >= (rec_res/2.0) && dist(engine) < vert_rate){
           //Vertical transmission, TODO: put sym repro in a function
           Symbiont s_baby(org.sym);
           s_baby.mutate(engine, mut_rate);
