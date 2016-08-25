@@ -194,7 +194,7 @@ void Population::print_stats() {
   int host_count = 0;
   int sym_count = 0;
   //figure out avg host and sym donations
-  std::vector<int> sym_dists(10, 0);
+ 
 
   for(auto org : pop){
     host_count++;
@@ -203,15 +203,15 @@ void Population::print_stats() {
       int sym_donate = (org.sym.donation * 10);
       sym_count++;
       sym_sum += org.sym.donation;
-      sym_dists[sym_donate] += 1;
+
     }
   }
   
   //cout << cur_update <<", "<< host_sum/host_count << ", " << sym_sum/sym_count << ", " << host_count << ", " << sym_count << endl <<std::flush;
   data_file << cur_update <<", "<< host_sum/host_count << ", " << sym_sum/sym_count << ", " << host_count << ", " << sym_count << endl <<std::flush;
   
-  //std::copy(sym_dists.begin(), sym_dists.end(), std::ostream_iterator<int>(std::cout, " "));
-  cout << endl;
+
+
   
 }
 
@@ -260,7 +260,7 @@ void Population::evolve(){
 
 
   for(cur_update = 0; cur_update < final_update; ++cur_update){
-    cout << cur_update << endl;
+    //cout << cur_update << endl;
     //Give everyone their points
     for(auto &org : pop) {
       //Run host and sym updates
