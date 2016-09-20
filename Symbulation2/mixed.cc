@@ -174,6 +174,8 @@ struct Population{
   float start_rate; // Donation rate the initial orgs start at
   std::mt19937 engine;
   std::ofstream data_file;
+  std::ofstream sym_file;
+  std::ofstream host_file;
   int rec_res = 100;
 
   Population() : final_update(1) {};
@@ -194,13 +196,16 @@ void Population::print_stats() {
   int host_count = 0;
   int sym_count = 0;
   //figure out avg host and sym donations
-  std::vector<int> sym_dists(10, 0);
+  std::vector<int> sym_dists(21, 0);
+  std::vector<int> host_dists(21, 0);
 
   for(auto org : pop){
     host_count++;
     host_sum += org.donation;
+    int host_donate = (org.donation) * 10 + 10;
+    host_dists[host_donate] += 1;
     if(org.sym.donation > -2){
-      int sym_donate = (org.sym.donation * 10);
+      int sym_donate = (org.sym.donation * 10) + 10;
       sym_count++;
       sym_sum += org.sym.donation;
       sym_dists[sym_donate] += 1;
@@ -208,10 +213,14 @@ void Population::print_stats() {
   }
   
   //cout << cur_update <<", "<< host_sum/host_count << ", " << sym_sum/sym_count << ", " << host_count << ", " << sym_count << endl <<std::flush;
-  data_file << cur_update <<", "<< host_sum/host_count << ", " << sym_sum/sym_count << ", " << host_count << ", " << sym_count << endl <<std::flush;
+  data_file << cur_update <<", "<< host_sum/host_count << ", " << sym_sum/sym_count << ", " << host_count << ", " << sym_count << endl << std::flush;
   
-  //std::copy(sym_dists.begin(), sym_dists.end(), std::ostream_iterator<int>(std::cout, " "));
-  cout << endl;
+  sym_file << cur_update << ", ";
+  std::copy(sym_dists.begin(), sym_dists.end(), std::ostream_iterator<int>(sym_file, ", "));
+  sym_file << endl << std::flush;
+  host_file << cur_update << ", ";
+  std::copy(host_dists.begin(), host_dists.end(), std::ostream_iterator<int>(host_file, ", "));
+  host_file << endl << std::flush;
   
 }
 
@@ -255,6 +264,11 @@ void Population::evolve(){
   
   data_file.open("avg_donation_"+str_seed+"_mut"+str_mut+"_mult"+str_mult+"_vert"+str_vert+"_start"+str_start+".csv", std::ofstream::ate);
   data_file << "Update, Host_Donation, Sym_Donation, Host_Count, Sym_Count" << endl << std::flush;
+  sym_file.open("syms_donation_"+str_seed+"_mut"+str_mut+"_mult"+str_mult+"_vert"+str_vert+"_start"+str_start+".csv", std::ofstream::ate);
+  sym_file << "Update, -1_-.9 -.9_-.8 -.8_-.7 -.7_-.6 -.6_-.5 -.5_-.4 -.4_-.3 -.3_-.2 -.2_-.1 -.1_0 0_.1 .1_.2 .2_.3 .3_.4 .4_.5 .5_.6 .6_.7 .7_.8 .8_.9 .9_1 1" << endl << std::flush;
+  host_file.open("hosts_donation_"+str_seed+"_mut"+str_mut+"_mult"+str_mult+"_vert"+str_vert+"_start"+str_start+".csv", std::ofstream::ate);
+  host_file << "Update, -1_-.9 -.9_-.8 -.8_-.7 -.7_-.6 -.6_-.5 -.5_-.4 -.4_-.3 -.3_-.2 -.2_-.1 -.1_0 0_.1 .1_.2 .2_.3 .3_.4 .4_.5 .5_.6 .6_.7 .7_.8 .8_.9 .9_1 1" << endl << std::flush;
+  
   std::mt19937 engine(seed);
   std::uniform_real_distribution<double> dist(0, 1);
 
@@ -314,6 +328,8 @@ void Population::evolve(){
   
   }
   data_file.close();
+  sym_file.close();
+  host_file.close();
 }
 
 
