@@ -211,7 +211,7 @@ void Population::print_stats() {
       int sym_donate = (org.sym.donation * 10) + 10;
       sym_count++;
       sym_sum += org.sym.donation;
-
+      sym_dists[sym_donate] +=1;
     }
   }
   
