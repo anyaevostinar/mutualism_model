@@ -187,7 +187,7 @@ struct Population{
   int rec_res = 100;
 
   Population() : final_update(1) {};
-  Population(int pop_count, int f, int seed, float start_rate);
+  Population(int pop_count, int f, int seed);
 
   void init_pop(int pop_count);
   void evolve();
@@ -242,11 +242,10 @@ void Population::print_stats() {
   
 }
 
-Population::Population(int pop_count, int f, int seed_i, float start) {
+Population::Population(int pop_count, int f, int seed_i) {
   final_update = f;
   cur_update = 0;
   seed = seed_i;
-  start_rate = start;
 
 
 
@@ -257,10 +256,16 @@ Population::Population(int pop_count, int f, int seed_i, float start) {
 void Population::init_pop(int pop_count) {
 
   assert(pop_count == POP_X * POP_Y);
+  
+  //This means we have two random number distributions but that's because the state was getting messed up
+  //when I had one for the Population object.... so need to fix that someday
+  std::mt19937 engine(seed);
+  std::uniform_real_distribution<double> dist(0, 1);
+  std::uniform_real_distribution<double> dist2(-1, 1);
   //cout << "start_rate" << start_rate << endl;
   for(int i=0; i<pop_count; ++i){
-    Symbiont new_sym(start_rate);
-    Host new_org(start_rate, new_sym, i, start_rate);
+    Symbiont new_sym(dist2(engine));
+    Host new_org(dist2(engine), new_sym, i, dist(engine));
     //cout << "new org!" << new_org.sym.donation << endl;
     pop.push_back(new_org);
     //cout << "inserted new org!" << pop[-1].sym.donation << endl;
@@ -280,13 +285,13 @@ void Population::evolve(){
   str_start.erase ( str_start.find_last_not_of('0') + 1, std::string::npos );
   
   
-  data_file.open("avg_donation_"+str_seed+"_mut"+str_mut+"_mult"+str_mult+"_start"+str_start+".csv", std::ofstream::ate);
+  data_file.open("avg_donation_"+str_seed+"_mut"+str_mut+"_mult"+str_mult+".csv", std::ofstream::ate);
   data_file << "Update, Host_Donation, Sym_Donation, Host_Count, Sym_Count, Vert_Trans" << endl << std::flush;
-  sym_file.open("syms_donation_"+str_seed+"_mut"+str_mut+"_mult"+str_mult+"_start"+str_start+".csv", std::ofstream::ate);
+  sym_file.open("syms_donation_"+str_seed+"_mut"+str_mut+"_mult"+str_mult+".csv", std::ofstream::ate);
   sym_file << "Update, -1_-.9 -.9_-.8 -.8_-.7 -.7_-.6 -.6_-.5 -.5_-.4 -.4_-.3 -.3_-.2 -.2_-.1 -.1_0 0_.1 .1_.2 .2_.3 .3_.4 .4_.5 .5_.6 .6_.7 .7_.8 .8_.9 .9_1 1" << endl << std::flush;
-  host_file.open("hosts_donation_"+str_seed+"_mut"+str_mut+"_mult"+str_mult+"_start"+str_start+".csv", std::ofstream::ate);
+  host_file.open("hosts_donation_"+str_seed+"_mut"+str_mut+"_mult"+str_mult+".csv", std::ofstream::ate);
   host_file << "Update, -1_-.9 -.9_-.8 -.8_-.7 -.7_-.6 -.6_-.5 -.5_-.4 -.4_-.3 -.3_-.2 -.2_-.1 -.1_0 0_.1 .1_.2 .2_.3 .3_.4 .4_.5 .5_.6 .6_.7 .7_.8 .8_.9 .9_1 1" << endl << std::flush;
-  vert_trans_file.open("vert_trans_"+str_seed+"_mut"+str_mut+"_mult"+str_mult+"_start"+str_start+".csv", std::ofstream::ate);
+  vert_trans_file.open("vert_trans_"+str_seed+"_mut"+str_mut+"_mult"+str_mult+".csv", std::ofstream::ate);
   vert_trans_file << "Update, 0_.1 .1_.2 .2_.3 .3_.4 .4_.5 .5_.6 .6_.7 .7_.8 .8_.9 .9_1 1" << endl << std::flush;
   
   std::mt19937 engine(seed);
@@ -356,11 +361,11 @@ void Population::evolve(){
 
 
 int main(int argc, char *argv[]) {
-  if (argc < 5) cout << "Usage: seed mut mult start" << endl;
+  if (argc < 4) cout << "Usage: seed mut mult" << endl;
   else{
   int seed = atoi(argv[1]);
 
-  Population pop(10000, 100000, seed, atof(argv[4]));
+  Population pop(10000, 100000, seed);
   pop.mut_rate = atof(argv[2]);
   pop.sym_mult = atoi(argv[3]);
 
