@@ -180,7 +180,7 @@ struct Population{
   int rec_res = 100;
 
   Population() : final_update(1) {};
-  Population(int pop_count, int f, int seed, float start_rate);
+  Population(int pop_count, int f, int seed);
 
   void init_pop(int pop_count);
   void evolve();
@@ -229,14 +229,10 @@ void Population::print_stats() {
   
 }
 
-Population::Population(int pop_count, int f, int seed_i, float start) {
+Population::Population(int pop_count, int f, int seed_i) {
   final_update = f;
   cur_update = 0;
   seed = seed_i;
-  start_rate = start;
-
-
-
 
   init_pop(pop_count);
 }
@@ -244,10 +240,14 @@ Population::Population(int pop_count, int f, int seed_i, float start) {
 void Population::init_pop(int pop_count) {
 
   assert(pop_count == POP_X * POP_Y);
+  //This means we have two random number distributions but that's because the state was getting messed up
+  //when I had one for the Population object.... so need to fix that someday
+  std::mt19937 engine(seed);
+  std::uniform_real_distribution<double> dist(-1, 1);
   //cout << "start_rate" << start_rate << endl;
   for(int i=0; i<pop_count; ++i){
-    Symbiont new_sym(start_rate);
-    Host new_org(start_rate, new_sym, i);
+    Symbiont new_sym(dist(engine));
+    Host new_org(dist(engine), new_sym, i);
     //cout << "new org!" << new_org.sym.donation << endl;
     pop.push_back(new_org);
     //cout << "inserted new org!" << pop[-1].sym.donation << endl;
@@ -340,11 +340,11 @@ void Population::evolve(){
 
 
 int main(int argc, char *argv[]) {
-  if (argc < 6) cout << "Usage: seed mut mult vert start" << endl;
+  if (argc < 5) cout << "Usage: seed mut mult vert" << endl;
   else{
   int seed = atoi(argv[1]);
 
-  Population pop(10000, 100000, seed, atof(argv[5]));
+  Population pop(10000, 100000, seed);
   pop.mut_rate = atof(argv[2]);
   pop.sym_mult = atoi(argv[3]);
   pop.vert_rate = atof(argv[4]);
