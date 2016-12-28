@@ -1,1 +1,9 @@
 Symbulation is an agent-based model to explore the evolution of mutualism between a host species and a (currently) obligate endosymbiont species. mixed.cc is the latest version with fixed vertical transmission rate. vert_trans_evolve.cp is the current version with evolvable vertical transmission rate. C++11 is required to build.
+
+The command line arguments are
+ [random number seed - int] 
+[mutation rate, the standard deviation of a Gaussian distribution with a mean of zero that is used to add to the current number of a mutating organism - float 0.002 is recommended] 
+[multiplier, the synergy effect applied to resources processed by the symbiont and returned to the host - int > 1]
+Optional: if you are using mixed.cpp instead of vert_trans_evolve.cpp, you can also set the vertical transmission rate, float 0.0 - 1.0
+
+tasks.cpp is the current development where more tasks/resources are added and the host and symbiont can only perform some of them
