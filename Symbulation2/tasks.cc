@@ -404,14 +404,15 @@ void Population::evolve(){
 
 
 int main(int argc, char *argv[]) {
-  if (argc < 5) cout << "Usage: seed mut mult vert" << endl;
+  if (argc < 4) cout << "Usage: seed mut vert" << endl;
   else{
   int seed = atoi(argv[1]);
 
   Population pop(10000, 100000, seed);
   pop.mut_rate = atof(argv[2]);
-  pop.sym_mult = atoi(argv[3]);
-  pop.vert_rate = atof(argv[4]);
+  //with division of labor, synergy no longer needs to be artificially enforced
+  pop.sym_mult = 1;
+  pop.vert_rate = atof(argv[3]);
 
   pop.evolve();}
 
