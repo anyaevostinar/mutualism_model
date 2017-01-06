@@ -106,13 +106,21 @@ void Host::update(int sym_mult) {
   set<int> total_tasks = tasks;
   if (sym.donation >= 0) total_tasks.insert(sym.tasks.cbegin(), sym.tasks.cend());
   int task_count = total_tasks.size();
-  float pool = 50.0 * task_count;
+  float pool = 50.0;
+
+  //determines if sym has tasks host doesn't
+  set<int> unique_set;
+  std::set_difference(sym.tasks.begin(), sym.tasks.end(), tasks.begin(), tasks.end(), std::inserter(unique_set, unique_set.end()));
+
+  float unique_to_sym = unique_set.size();
+
 
   if (donation >= 0){
     //Donate resources, keep some for reproduction
     //If donation is 0, nothing is donated to sym or put into defense
     float donation_res = pool * donation;
     pool -= donation_res;
+
     
     
     if(sym.donation >= 0 ) {
@@ -123,7 +131,7 @@ void Host::update(int sym_mult) {
       //Sym gets its resources
       sym.update(donation_res - returned);
       //Host gets the boosted res from symbiont
-      points += returned * sym_mult;
+      points += returned * (1+ unique_to_sym);
     }
     else if (sym.donation < 0) {
       //Mean sym is going to keep all donated and steal some more!
@@ -151,11 +159,6 @@ void Host::update(int sym_mult) {
     else if (sym.donation != -2 && sym.donation < 0) {
     //mean sym in a defensive host, fight fight fight!
 
-      //determines if sym is attacking somewhere that host didn't defend
-      set<int> successful_attacks_set;
-      std::set_difference(sym.tasks.begin(), sym.tasks.end(), tasks.begin(), tasks.end(), std::inserter(successful_attacks_set, successful_attacks_set.end()));
-
-      float successful_attacks = successful_attacks_set.size();
 
       //How many sections should the resource pool be split into?
       set<int> total_res = tasks;
@@ -165,7 +168,7 @@ void Host::update(int sym_mult) {
 
       //amount of resource avaible to be stolen is based on how many unique tasks symbiont has different from host
       //proportion possible from pool is the ratio of successful attacks to how many ways the resources were split things up, ie it successfully defended some things so the symbiont doesn't have a chance at those
-      float at_risk_pool = pool * (successful_attacks/total_res_count);
+      float at_risk_pool = pool * (unique_to_sym/total_res_count);
 
       if(sym.donation < donation){
         //Sym is able to steal from the at risk pool proportional to how mean it is
@@ -250,7 +253,9 @@ void Population::print_stats() {
 
   std::vector<int> sym_dists(21, 0);
   std::vector<int> host_dists(21, 0);
-  std::vector<int> tasks(2*resources.size(), 0);
+  int res_size = resources.size();
+  std::vector<int> tasks(2*res_size, 0);
+
 
   for(auto org : pop){
     host_count++;
@@ -266,7 +271,7 @@ void Population::print_stats() {
       sym_sum += org.sym.donation;
       sym_dists[sym_donate] +=1;
       for(auto task : org.sym.tasks) {
-	tasks[task+2] += 1;
+	tasks[task+res_size] += 1;
       }
     }
   }
@@ -307,6 +312,7 @@ void Population::init_pop(int pop_count) {
   //cout << "start_rate" << start_rate << endl;
   for(int i=0; i<pop_count; ++i){
     Symbiont new_sym(dist(engine), {*select_randomly(resources.begin(), resources.end(), engine)});
+    cout << *(new_sym.tasks.begin()) << endl;
     Host new_org(dist(engine), new_sym, i, {*select_randomly(resources.begin(), resources.end(), engine)});
     //cout << "new org!" << new_org.sym.donation << endl;
     pop.push_back(new_org);
@@ -335,7 +341,14 @@ void Population::evolve(){
   host_file << "Update, -1_-.9 -.9_-.8 -.8_-.7 -.7_-.6 -.6_-.5 -.5_-.4 -.4_-.3 -.3_-.2 -.2_-.1 -.1_0 0_.1 .1_.2 .2_.3 .3_.4 .4_.5 .5_.6 .6_.7 .7_.8 .8_.9 .9_1 1" << endl << std::flush;
   tasks_file.open("tasks_"+str_seed+"_mut"+str_mut+"_mult"+str_mult+"_vert"+str_vert+"_start"+str_start+".csv", std::ofstream::ate);
   //TODO: make this dynamic based on number of resources
-  tasks_file << "Update, Host_0, Host_1, Sym_0, Sym_1" << endl << std::flush;
+  tasks_file << "Update";
+  for(auto resource : resources){
+    tasks_file << ", Host_" << resource;
+  }
+  for (auto resource : resources){
+    tasks_file << ", Sym_" << resource;
+  }
+  tasks_file << endl << std::flush;
 
   
   std::mt19937 engine(seed);
