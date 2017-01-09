@@ -13,7 +13,7 @@ using std::set;
 
 int POP_X = 100;
 int POP_Y = 100;
-set<int> resources = {0, 1};
+set<int> resources = {0, 1, 2};
 
 //Code from http://stackoverflow.com/questions/6942273/get-random-element-from-container
 template<typename Iter, typename RandomGenerator>
@@ -230,6 +230,8 @@ struct Population{
   std::ofstream host_file;
   std::ofstream tasks_file;
   int rec_res = 100;
+  int host_tasks_lim = 2;
+  int sym_tasks_lim = 1;
 
 
   Population() : final_update(1) {};
@@ -309,14 +311,21 @@ void Population::init_pop(int pop_count) {
   //when I had one for the Population object.... so need to fix that someday
   std::mt19937 engine(seed);
   std::uniform_real_distribution<double> dist(-1, 1);
-  //cout << "start_rate" << start_rate << endl;
+
   for(int i=0; i<pop_count; ++i){
-    Symbiont new_sym(dist(engine), {*select_randomly(resources.begin(), resources.end(), engine)});
-    cout << *(new_sym.tasks.begin()) << endl;
-    Host new_org(dist(engine), new_sym, i, {*select_randomly(resources.begin(), resources.end(), engine)});
-    //cout << "new org!" << new_org.sym.donation << endl;
+    set<int> sym_tasks;
+    for(int t= 0; t<sym_tasks_lim; ++t){
+      sym_tasks.insert(*select_randomly(resources.begin(), resources.end(), engine)); 
+    }
+    Symbiont new_sym(dist(engine), sym_tasks);
+    set<int> host_tasks;
+    for(int t=0; t<host_tasks_lim; ++t){
+      host_tasks.insert(*select_randomly(resources.begin(), resources.end(), engine));
+    }
+    Host new_org(dist(engine), new_sym, i, host_tasks);
+
     pop.push_back(new_org);
-    //cout << "inserted new org!" << pop[-1].sym.donation << endl;
+
     
   }
 }
