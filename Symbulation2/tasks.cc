@@ -14,6 +14,8 @@ using std::set;
 int POP_X = 100;
 int POP_Y = 100;
 set<int> resources = {0, 1, 2};
+int host_tasks_lim = 2;
+int sym_tasks_lim = 1;
 
 //Code from http://stackoverflow.com/questions/6942273/get-random-element-from-container
 template<typename Iter, typename RandomGenerator>
@@ -59,7 +61,8 @@ void Symbiont::mutate(std::mt19937& r, float rate){
   if(donation < -1) donation = -1;
 
   if (mutation>0.01 || mutation< -0.01){
-    tasks.erase(*select_randomly(tasks.begin(), tasks.end(), r));
+    if (tasks.size() >= sym_tasks_lim)
+      tasks.erase(*select_randomly(tasks.begin(), tasks.end(), r));
     tasks.insert(*select_randomly(resources.begin(), resources.end(), r));
   }
 
@@ -207,7 +210,8 @@ void Host::mutate(std::mt19937& r, double rate){
 
   //TODO: figure out how to make this related to rate
   if (mutation>0.01 || mutation< -0.01){
-    tasks.erase(*select_randomly(tasks.begin(), tasks.end(), r));
+    if(tasks.size() >= host_tasks_lim)
+      tasks.erase(*select_randomly(tasks.begin(), tasks.end(), r));
     tasks.insert(*select_randomly(resources.begin(), resources.end(), r));
   }
 
@@ -230,8 +234,6 @@ struct Population{
   std::ofstream host_file;
   std::ofstream tasks_file;
   int rec_res = 100;
-  int host_tasks_lim = 2;
-  int sym_tasks_lim = 1;
 
 
   Population() : final_update(1) {};
