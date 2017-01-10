@@ -13,8 +13,8 @@ using std::set;
 
 int POP_X = 100;
 int POP_Y = 100;
-set<int> resources = {0, 1, 2};
-int host_tasks_lim = 2;
+set<int> resources = {0, 1};
+int host_tasks_lim = 1;
 int sym_tasks_lim = 1;
 
 //Code from http://stackoverflow.com/questions/6942273/get-random-element-from-container
@@ -168,14 +168,21 @@ void Host::update(int sym_mult) {
       total_res.insert(sym.tasks.cbegin(), sym.tasks.cend());
       float total_res_count = total_res.size();
       
+      //Host automatically loses any undefended resources
+      float stolen = pool * (unique_to_sym/total_res_count);
+      pool -= stolen;
+      sym.update(stolen);
+      stolen = 0;
+      
 
-      //amount of resource avaible to be stolen is based on how many unique tasks symbiont has different from host
-      //proportion possible from pool is the ratio of successful attacks to how many ways the resources were split things up, ie it successfully defended some things so the symbiont doesn't have a chance at those
-      float at_risk_pool = pool * (unique_to_sym/total_res_count);
+      //Host and symbiont battle over resources they both try for
+      int battles = sym.tasks.size() - unique_to_sym;
+      float at_risk_pool = pool * (battles/total_res_count);
 
       if(sym.donation < donation){
         //Sym is able to steal from the at risk pool proportional to how mean it is
-        float stolen = ((sym.donation - donation)* at_risk_pool * -1);
+        
+	stolen = ((sym.donation - donation)* at_risk_pool * -1);
         //Remove the stolen resources from the pool, stolen is a positive value now
         pool -= stolen;
         sym.update(stolen);
