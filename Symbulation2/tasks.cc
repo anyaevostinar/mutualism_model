@@ -13,7 +13,7 @@ using std::set;
 
 int POP_X = 100;
 int POP_Y = 100;
-set<int> resources = {0, 1};
+vector<int> resources = {0, 1};
 int host_tasks_lim = 1;
 int sym_tasks_lim = 1;
 
@@ -25,14 +25,15 @@ Iter select_randomly(Iter start, Iter end, RandomGenerator& g) {
   return start;
 }
 
+
 struct Symbiont {
   float donation;
   float points;
-  set<int> tasks;
+  vector<int> tasks;
 
   Symbiont() : donation(-2), points(-2) {};
-  Symbiont(float d, float p, set<int> s) : donation(d), points(p), tasks(s) {};
-  Symbiont(float d, set<int> s) : donation(d), points(0.0), tasks(s) {};
+  Symbiont(float d, float p, vector<int> s) : donation(d), points(p), tasks(s) {};
+  Symbiont(float d, vector<int> s) : donation(d), points(0.0), tasks(s) {};
   Symbiont(Symbiont &parent) : donation(parent.donation), points(0.0), tasks(parent.tasks) {};
   Symbiont(const Symbiont& orig) : donation(orig.donation), points(orig.points), tasks(orig.tasks) {};
 
@@ -62,8 +63,10 @@ void Symbiont::mutate(std::mt19937& r, float rate){
 
   if (mutation>0.01 || mutation< -0.01){
     if (tasks.size() >= sym_tasks_lim)
-      tasks.erase(*select_randomly(tasks.begin(), tasks.end(), r));
-    tasks.insert(*select_randomly(resources.begin(), resources.end(), r));
+      tasks.erase(std::remove(tasks.begin(), tasks.end(), *select_randomly(tasks.begin(), tasks.end(), r)), tasks.end());
+    tasks.push_back(*select_randomly(resources.begin(), resources.end(), r));
+    set<int> temp(tasks.begin(), tasks.end());
+    tasks = vector<int>(temp.begin(), temp.end());
   }
 
   points = 0;
@@ -76,15 +79,15 @@ void Symbiont::mutate(std::mt19937& r, float rate){
 struct Host {
   float donation;
   float points;
-  set<int> tasks;
+  vector<int> tasks;
 
   Symbiont sym;
   int cell_id;
   
 
   Host() =delete;
-  Host(float d, float p, Symbiont s, int id, set<int> t) : donation(d), points(p), sym(s), cell_id(id), tasks(t) {};
-  Host(float d, Symbiont s, int id, set<int> t) : donation(d), points(0.0), sym(s), cell_id(id), tasks(t) {};
+  Host(float d, float p, Symbiont s, int id, vector<int> t) : donation(d), points(p), sym(s), cell_id(id), tasks(t) {};
+  Host(float d, Symbiont s, int id, vector<int> t) : donation(d), points(0.0), sym(s), cell_id(id), tasks(t) {};
   Host(const Host &orig) : donation(orig.donation), points(orig.points), cell_id(orig.cell_id), sym(orig.sym), tasks(orig.tasks) {};
 
   void update(int);
@@ -104,95 +107,139 @@ void Host::birth(Host parent) {
 
 void Host::update(int sym_mult) {
 
-  //Pool size determined by how many resources host (and mutualist sym) cover with tasks
-
-  set<int> total_tasks = tasks;
-  if (sym.donation >= 0) total_tasks.insert(sym.tasks.cbegin(), sym.tasks.cend());
-  int task_count = total_tasks.size();
-  float pool = 50.0;
-
-  //determines if sym has tasks host doesn't
-  set<int> unique_set;
-  std::set_difference(sym.tasks.begin(), sym.tasks.end(), tasks.begin(), tasks.end(), std::inserter(unique_set, unique_set.end()));
-
-  float unique_to_sym = unique_set.size();
-
-
+  //we need to have a list of resource pools of 25 each
+  std::vector<float> pools;
+  for (auto resource : resources){
+    pools.push_back(25);
+  }
+  
   if (donation >= 0){
     //Donate resources, keep some for reproduction
-    //If donation is 0, nothing is donated to sym or put into defense
-    float donation_res = pool * donation;
-    pool -= donation_res;
+    std::vector<float> donation_res;
+    for (auto p : pools){
+      float proportion_donate = donation*p;
+      donation_res.push_back(proportion_donate);
+      p -= proportion_donate;
+    }
 
+
+    //Now we go through and let the sym digest whatever it can digest and turn it to glucose
+    //This is a holder for the digested resource
+    float glucose = 0;
     
+    //process resources sym has
+    for(int r=0;r< donation_res.size(); r++){
+
+      //is this a resource the symbiont can digest?
+      if (std::find(sym.tasks.begin(), sym.tasks.end(), r) != sym.tasks.end()){
+	//Yes, sym can digest this resource
+	//Move this resource into glucose
+	glucose += donation_res[r];
+	donation_res[r] = 0;
+	
+      }
+    }
+
     
     if(sym.donation >= 0 ) {
         //Sym is nice so it won't steal
         //If donation is more than zero, some returned to host
         //If donation is zero, nothing returned and sym keeps all donated but doesn't steal
-      float returned = donation_res * sym.donation;
-      //Sym gets its resources
-      sym.update(donation_res - returned);
-      //Host gets the boosted res from symbiont
-      points += returned * (1+ unique_to_sym);
+
+      //Resources the symbiont couldn't digest are still sitting in donation_res and will go back to host if nice sym
+      for (int p=0; p<pools.size(); p++){
+	pools[p] += donation_res[p];
+	donation_res[p] = 0; //this isn't used again, but just in case
+      }
+
+      //Amount of glucose going back to host
+      float returned = glucose*sym.donation;
+      //Sym gets its remaining glucose
+      sym.update(glucose - returned);
+      //Host gets the glucose from symbiont
+      points += returned;
     }
     else if (sym.donation < 0) {
       //Mean sym is going to keep all donated and steal some more!
-      
       //Calculate how much the sym is stealing from the pool remaining and switch it to positive
-      float stolen = sym.donation * pool * -1;
-      pool -= stolen;
+      
+      float stolen_glucose;
+      for (int p=0; p<pools.size(); p++) {
+	//for each pool, sym will steal some and try to digest it, but loses some in the process
+	float stolen;
+	stolen += pools[p]*sym.donation * -1; //sym.donation is negative so making stolen positive
+	pools[p] -= stolen;
+
+	if (std::find(sym.tasks.begin(), sym.tasks.end(), p) != sym.tasks.end()){
+	  //Can sym efficiently digest this resource?
+	  stolen_glucose += stolen;
+	} else {
+	  //Sym only able to get half the energy out
+	  stolen_glucose += stolen*0.5;
+	}
+      }
       //Give sym its donated and stolen resources, the meanie!
-      sym.update(donation_res + stolen);
+      sym.update(glucose+stolen_glucose);
     }
     
 
   }
   else if (donation < 0) {
-    //resources invested into defense and removed from pool, since donation is negative and pool is positive, addition is actually removing. This is the total amount going into defense, it will be split between tasks if host has multiple
-    pool += pool*donation;
-
+    //for each resource, if the host has that task, it invests part of that resource into defense, otherwise undefended
+    for(int p=0; p<pools.size(); p++){
+      if (std::find(tasks.begin(), tasks.end(), p) != tasks.end()){
+	//This is the amount that gets invested in defense and therefore no one can use for reproduction
+	pools[p] += pools[p] * donation; //donation is negative so actually subtracting
+      }
+    }
   
-    if (sym.donation != -2 && sym.donation > 0){
-    //Need to at some point fix how I represent an absent sym, but for now -2 means there isn't one
+    if (sym.donation > 0){
     //nice sym in a defensive host, so it doesn't get anything I guess?
-      
-    
     }
     else if (sym.donation != -2 && sym.donation < 0) {
+    //Need to at some point fix how I represent an absent sym, but for now -2 means there isn't one
     //mean sym in a defensive host, fight fight fight!
 
-
-      //How many sections should the resource pool be split into?
-      set<int> total_res = tasks;
-      total_res.insert(sym.tasks.cbegin(), sym.tasks.cend());
-      float total_res_count = total_res.size();
-      
       //Host automatically loses any undefended resources
-      float stolen = pool * (unique_to_sym/total_res_count);
-      pool -= stolen;
+      float stolen;
+      //determines if sym has tasks host doesn't
+      vector<int> unique_set;
+      std::set_difference(sym.tasks.begin(), sym.tasks.end(), tasks.begin(), tasks.end(), std::inserter(unique_set, unique_set.begin()));
+      set<int> temp(unique_set.begin(), unique_set.end());
+      unique_set = vector<int>(temp.begin(), temp.end());
+
+      for(auto p : unique_set){
+	stolen += pools[p];
+	pools[p] = 0;
+      }
       sym.update(stolen);
       stolen = 0;
-      
 
       //Host and symbiont battle over resources they both try for
-      int battles = sym.tasks.size() - unique_to_sym;
-      float at_risk_pool = pool * (battles/total_res_count);
+      vector<int> battles;
+      std::set_intersection(tasks.begin(), tasks.end(), sym.tasks.begin(), sym.tasks.end(), std::inserter(battles, battles.begin()));
 
       if(sym.donation < donation){
-        //Sym is able to steal from the at risk pool proportional to how mean it is
+        //Sym is able to steal from the battle pools proportionally to how much meaner it is
         
-	stolen = ((sym.donation - donation)* at_risk_pool * -1);
-        //Remove the stolen resources from the pool, stolen is a positive value now
-        pool -= stolen;
+	for (auto b : battles){
+	  float temp = (sym.donation - donation) * -1; //flipping the negative to make things clearer
+	  pools[b] -= temp;
+	  stolen += temp;
+	}
+
         sym.update(stolen);
       
       }
       //If host puts more into defense than sym does into attack, host gets to keep the resources
     }
+   
+    //Host gets to keep whatever is left in pools
+    for (auto p : pools){
+      points += p;
+    }
+
   }
-  //Host gets to keep whatever is left in pool
-  points += pool;
 }
 
 int Host::chooseNeighbor(std::mt19937 &r){
@@ -218,8 +265,10 @@ void Host::mutate(std::mt19937& r, double rate){
   //TODO: figure out how to make this related to rate
   if (mutation>0.01 || mutation< -0.01){
     if(tasks.size() >= host_tasks_lim)
-      tasks.erase(*select_randomly(tasks.begin(), tasks.end(), r));
-    tasks.insert(*select_randomly(resources.begin(), resources.end(), r));
+      tasks.erase(std::remove(tasks.begin(), tasks.end(), *select_randomly(tasks.begin(), tasks.end(), r)), tasks.end());
+    tasks.push_back(*select_randomly(resources.begin(), resources.end(), r));
+    set<int> temp(tasks.begin(), tasks.end());
+    tasks = vector<int>(temp.begin(), temp.end());
   }
 
   points = 0;
@@ -322,14 +371,14 @@ void Population::init_pop(int pop_count) {
   std::uniform_real_distribution<double> dist(-1, 1);
 
   for(int i=0; i<pop_count; ++i){
-    set<int> sym_tasks;
+    vector<int> sym_tasks;
     for(int t= 0; t<sym_tasks_lim; ++t){
-      sym_tasks.insert(*select_randomly(resources.begin(), resources.end(), engine)); 
+      sym_tasks.push_back(*select_randomly(resources.begin(), resources.end(), engine)); 
     }
     Symbiont new_sym(dist(engine), sym_tasks);
-    set<int> host_tasks;
+    vector<int> host_tasks;
     for(int t=0; t<host_tasks_lim; ++t){
-      host_tasks.insert(*select_randomly(resources.begin(), resources.end(), engine));
+      host_tasks.push_back(*select_randomly(resources.begin(), resources.end(), engine));
     }
     Host new_org(dist(engine), new_sym, i, host_tasks);
 
