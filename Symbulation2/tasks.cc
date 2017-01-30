@@ -136,8 +136,15 @@ void Host::update(int sym_mult) {
 	//Move this resource into glucose
 	glucose += donation_res[r];
 	donation_res[r] = 0;
-	
       }
+      else{
+	//Sym can't digest it well so some is wasted
+	float temp = donation_res[r] * 0.25;
+	glucose += temp;
+	donation_res[r] = 0;
+      }
+	
+      
     }
 
     
@@ -174,8 +181,8 @@ void Host::update(int sym_mult) {
 	  //Can sym efficiently digest this resource?
 	  stolen_glucose += stolen;
 	} else {
-	  //Sym only able to get half the energy out
-	  stolen_glucose += stolen*0.5;
+	  //Sym only able to get some of the energy out
+	  stolen_glucose += stolen*0.25;
 	}
       }
       //Give sym its donated and stolen resources, the meanie!
@@ -234,9 +241,14 @@ void Host::update(int sym_mult) {
       //If host puts more into defense than sym does into attack, host gets to keep the resources
     }
    
-    //Host gets to keep whatever is left in pools
-    for (auto p : pools){
-      points += p;
+    //Host gets to try to digest whatever was left, but wastes half if inefficient
+    for (int r=0; r<pools.size(); r++){
+      if (std::find(tasks.begin(), tasks.end(), r) != tasks.end()){
+	points += pools[r];
+      } else{
+	//Host can't digest efficiently, wastes some
+	points += pools[r]*0.25;
+      }
     }
 
   }
