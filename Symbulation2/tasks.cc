@@ -110,7 +110,7 @@ void Host::update(int sym_mult) {
   //we need to have a list of resource pools of 25 each
   std::vector<float> pools;
   for (auto resource : resources){
-    pools.push_back(25);
+    pools.push_back(50);
   }
   
   if (donation >= 0){
