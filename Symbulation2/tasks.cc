@@ -46,12 +46,13 @@ struct Symbiont {
 float Symbiont::update(float res, int rate = 5) {
   //Sym receives some resources from host and can return some back
   //cout << "updating a sym, yey!" << endl;
+  //  cout << "Symbiont res: " << res << endl;
   points += res;
   return 0.0;
 }
 
 void Symbiont::mutate(std::mt19937& r, float rate){
-  //std::normal_distribution<double> dist(0.5, rate);
+  //  std::normal_distribution<double> dist(0.5, rate);
   //double mutation = dist(r); // pull from dist
   //donation = (2*donation)/(1+2*mutation);
   std::normal_distribution<double> dist(0, rate);
@@ -106,21 +107,35 @@ void Host::birth(Host parent) {
 }
 
 void Host::update(int sym_mult) {
-
+  //std::cout << "---------------------------" << endl;
+  //  std::cout << "start host: " << points << " behave: " << donation << endl;
+  //std::cout << "start sym: " << sym.points << " behave: " << sym.donation << endl;
   //we need to have a list of resource pools of 25 each
   std::vector<float> pools;
   for (auto resource : resources){
     pools.push_back(50);
   }
+  //std::cout << "Pools: " << endl;
+  // std::copy(pools.begin(), pools.end(), std::ostream_iterator<float>(std::cout, " "));
+  //std::cout << endl;
   
   if (donation >= 0){
     //Donate resources, keep some for reproduction
     std::vector<float> donation_res;
-    for (auto p : pools){
-      float proportion_donate = donation*p;
+    for (int p = 0; p < pools.size(); p++){
+      //std::cout << "P start: " << pools[p] << endl;
+      float proportion_donate = donation*pools[p];
+      //std::cout << "Proportion donated: " << proportion_donate << endl;
       donation_res.push_back(proportion_donate);
-      p -= proportion_donate;
+      pools[p] -= proportion_donate;
+      //std::cout << "P: " << pools[p] << endl;
     }
+    //std::cout << "Pools should  be zeros: ";
+    //std::copy(pools.begin(), pools.end(), std::ostream_iterator<float>(std::cout, " "));
+    //std::cout << endl;
+    //std::cout << "Donation Res: " << endl;
+    //    std::copy(donation_res.begin(), donation_res.end(), std::ostream_iterator<float>(std::cout, " "));
+    //std::cout << endl;
 
 
     //Now we go through and let the sym digest whatever it can digest and turn it to glucose
@@ -138,11 +153,10 @@ void Host::update(int sym_mult) {
 	donation_res[r] = 0;
       }
       else{
-	//Sym can't digest it well so some is wasted
-	float temp = donation_res[r] * 0.25;
-	glucose += temp;
-	donation_res[r] = 0;
+	//Sym doesn't touch things that it can't digest
+
       }
+      //      cout << "Glucose: " << glucose << endl;
 	
       
     }
@@ -154,13 +168,24 @@ void Host::update(int sym_mult) {
         //If donation is zero, nothing returned and sym keeps all donated but doesn't steal
 
       //Resources the symbiont couldn't digest are still sitting in donation_res and will go back to host if nice sym
+      //std::cout << "Before left over res: " << endl;
+      //std::copy(donation_res.begin(), donation_res.end(), std::ostream_iterator<float>(std::cout, " "));
+      //std::cout << endl;
+
+      //std::cout << "Before Pools: " << endl;
+      //std::copy(pools.begin(), pools.end(), std::ostream_iterator<float>(std::cout, " "));
+      //std::cout << endl;
       for (int p=0; p<pools.size(); p++){
 	pools[p] += donation_res[p];
 	donation_res[p] = 0; //this isn't used again, but just in case
       }
+      //std::cout << "After Pools: " << endl;
+      //std::copy(pools.begin(), pools.end(), std::ostream_iterator<float>(std::cout, " "));
+      //std::cout << endl;
 
       //Amount of glucose going back to host
-      float returned = glucose*sym.donation;
+      float returned = (glucose*sym.donation);
+      //cout << "Returned: " << returned << endl;
       //Sym gets its remaining glucose
       sym.update(glucose - returned);
       //Host gets the glucose from symbiont
@@ -182,7 +207,7 @@ void Host::update(int sym_mult) {
 	  stolen_glucose += stolen;
 	} else {
 	  //Sym only able to get some of the energy out
-	  stolen_glucose += stolen*0.25;
+	  //stolen_glucose += stolen*0.25;
 	}
       }
       //Give sym its donated and stolen resources, the meanie!
@@ -240,18 +265,28 @@ void Host::update(int sym_mult) {
       }
       //If host puts more into defense than sym does into attack, host gets to keep the resources
     }
-   
+  }
     //Host gets to try to digest whatever was left, but wastes half if inefficient
+    //std::cout << "Host task: ";
+  //    std::copy(tasks.begin(), tasks.end(), std::ostream_iterator<float>(std::cout, " "));
+    //std::cout << endl;
+    //std::cout << "Before last digestion: " << points<< endl << "Pools: ";
+    //    std::copy(pools.begin(), pools.end(), std::ostream_iterator<float>(std::cout, " "));
+    //std::cout << endl;
     for (int r=0; r<pools.size(); r++){
       if (std::find(tasks.begin(), tasks.end(), r) != tasks.end()){
 	points += pools[r];
+	//std::cout << "ADDED: " << pools[r] << endl;
       } else{
 	//Host can't digest efficiently, wastes some
-	points += pools[r]*0.25;
+	//	points += pools[r]*0.25;
       }
     }
 
-  }
+  
+    //  std::cout << "end host: " << points << endl;
+  //std::cout << "end sym: " << sym.points << endl;
+  //std::cout << "--------------------------" << endl;
 }
 
 int Host::chooseNeighbor(std::mt19937 &r){
@@ -385,12 +420,14 @@ void Population::init_pop(int pop_count) {
   for(int i=0; i<pop_count; ++i){
     vector<int> sym_tasks;
     for(int t= 0; t<sym_tasks_lim; ++t){
-      sym_tasks.push_back(*select_randomly(resources.begin(), resources.end(), engine)); 
+      //sym_tasks.push_back(*select_randomly(resources.begin(), resources.end(), engine)); 
+      sym_tasks.push_back(1);
     }
     Symbiont new_sym(dist(engine), sym_tasks);
     vector<int> host_tasks;
     for(int t=0; t<host_tasks_lim; ++t){
-      host_tasks.push_back(*select_randomly(resources.begin(), resources.end(), engine));
+      //      host_tasks.push_back(*select_randomly(resources.begin(), resources.end(), engine));
+      host_tasks.push_back(0);
     }
     Host new_org(dist(engine), new_sym, i, host_tasks);
 
