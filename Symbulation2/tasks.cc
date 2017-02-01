@@ -63,9 +63,9 @@ void Symbiont::mutate(std::mt19937& r, float rate){
   if(donation < -1) donation = -1;
 
   if (mutation>0.01 || mutation< -0.01){
+    tasks.push_back(*select_randomly(resources.begin(), resources.end(), r));
     if (tasks.size() >= sym_tasks_lim)
       tasks.erase(std::remove(tasks.begin(), tasks.end(), *select_randomly(tasks.begin(), tasks.end(), r)), tasks.end());
-    tasks.push_back(*select_randomly(resources.begin(), resources.end(), r));
     set<int> temp(tasks.begin(), tasks.end());
     tasks = vector<int>(temp.begin(), temp.end());
   }
@@ -311,9 +311,9 @@ void Host::mutate(std::mt19937& r, double rate){
 
   //TODO: figure out how to make this related to rate
   if (mutation>0.01 || mutation< -0.01){
+    tasks.push_back(*select_randomly(resources.begin(), resources.end(), r));
     if(tasks.size() >= host_tasks_lim)
       tasks.erase(std::remove(tasks.begin(), tasks.end(), *select_randomly(tasks.begin(), tasks.end(), r)), tasks.end());
-    tasks.push_back(*select_randomly(resources.begin(), resources.end(), r));
     set<int> temp(tasks.begin(), tasks.end());
     tasks = vector<int>(temp.begin(), temp.end());
   }
@@ -420,14 +420,14 @@ void Population::init_pop(int pop_count) {
   for(int i=0; i<pop_count; ++i){
     vector<int> sym_tasks;
     for(int t= 0; t<sym_tasks_lim; ++t){
-      //sym_tasks.push_back(*select_randomly(resources.begin(), resources.end(), engine)); 
-      sym_tasks.push_back(1);
+      sym_tasks.push_back(*select_randomly(resources.begin(), resources.end(), engine)); 
+      
     }
     Symbiont new_sym(dist(engine), sym_tasks);
     vector<int> host_tasks;
     for(int t=0; t<host_tasks_lim; ++t){
-      //      host_tasks.push_back(*select_randomly(resources.begin(), resources.end(), engine));
-      host_tasks.push_back(0);
+      host_tasks.push_back(*select_randomly(resources.begin(), resources.end(), engine));
+      
     }
     Host new_org(dist(engine), new_sym, i, host_tasks);
 
