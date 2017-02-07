@@ -408,7 +408,6 @@ void Population::evolve(){
   host_file.open("hosts_donation_"+str_seed+"_mut"+str_mut+"_mult"+str_mult+"_vert"+str_vert+"_start"+str_start+".csv", std::ofstream::ate);
   host_file << "Update, -1_-.9 -.9_-.8 -.8_-.7 -.7_-.6 -.6_-.5 -.5_-.4 -.4_-.3 -.3_-.2 -.2_-.1 -.1_0 0_.1 .1_.2 .2_.3 .3_.4 .4_.5 .5_.6 .6_.7 .7_.8 .8_.9 .9_1 1" << endl << std::flush;
   tasks_file.open("tasks_"+str_seed+"_mut"+str_mut+"_mult"+str_mult+"_vert"+str_vert+"_start"+str_start+".csv", std::ofstream::ate);
-  //TODO: make this dynamic based on number of resources
   tasks_file << "Update";
   for(auto resource : resources){
     tasks_file << ", Host_" << resource;
@@ -422,8 +421,10 @@ void Population::evolve(){
   std::mt19937 engine(seed);
   std::uniform_real_distribution<double> dist(0, 1);
 
-
-  for(cur_update = 0; cur_update < final_update; ++cur_update){
+  //This is to disable mutation after a while to let things settle out
+  bool ecological = false;
+  for(cur_update = 0; cur_update < final_update+10000; ++cur_update){
+    if (!ecological && cur_update >= final_update) ecological = true;
     //cout << cur_update << endl;
     //Give everyone their points
     for(auto &org : pop) {
@@ -443,8 +444,11 @@ void Population::evolve(){
         //Baby sym!
         Symbiont baby(parent);
         //Mutate both and reset and place
+	if (!ecological){
         baby.mutate(engine, mut_rate);
         parent.mutate(engine, mut_rate);
+	} else {baby.points = 0; parent.points=0;}
+
         int infected = org.chooseNeighbor(engine);
 	if(pop[infected].sym.donation == -2)
 	  //cout << "baby sym survives!" << endl;
@@ -458,15 +462,21 @@ void Population::evolve(){
         if(org.sym.points > 0 && dist(engine) < vert_rate){
           //Vertical transmission, TODO: put sym repro in a function
           Symbiont s_baby(org.sym);
+	  if (!ecological) {
           s_baby.mutate(engine, mut_rate);
           org.sym.mutate(engine, mut_rate);
+	  } else {
+	    s_baby.points=0; org.sym.points=0;
+	  }
           baby.sym = s_baby;
         }
 
 	//cout << "host baby has sym: " << baby.sym.donation << endl;
         //Mutate both and reset and place
+	if (!ecological) {
         baby.mutate(engine, mut_rate);
         org.mutate(engine, mut_rate);
+	} else {baby.points=0; org.points=0;}
         int squashed = org.chooseNeighbor(engine);
         baby.cell_id = squashed;
         pop[squashed] = baby;
