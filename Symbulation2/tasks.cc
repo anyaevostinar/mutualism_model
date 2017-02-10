@@ -502,7 +502,7 @@ int main(int argc, char *argv[]) {
   else{
   int seed = atoi(argv[1]);
 
-  Population pop(10000, 100000, seed);
+  Population pop(10000, 500000, seed);
   pop.mut_rate = atof(argv[2]);
   //with division of labor, synergy no longer needs to be artificially enforced
   pop.sym_mult = 1;
