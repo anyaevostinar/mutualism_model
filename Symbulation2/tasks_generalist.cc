@@ -62,7 +62,9 @@ void Symbiont::mutate(std::mt19937& r, float rate){
   if(donation > 1) donation = 1;
   if(donation < -1) donation = -1;
 
-  if (mutation>0.01 || mutation< -0.01){
+  std::uniform_real_distribution<double> dist2(0, 1);
+  mutation = dist2(r);
+  if (mutation<rate){
     tasks.push_back(*select_randomly(resources.begin(), resources.end(), r));
     if (tasks.size() >= sym_tasks_lim)
       tasks.erase(std::remove(tasks.begin(), tasks.end(), *select_randomly(tasks.begin(), tasks.end(), r)), tasks.end());
@@ -263,8 +265,9 @@ void Host::mutate(std::mt19937& r, double rate){
   if (donation > 1) donation = 1;
   if (donation < -1) donation = -1;
 
-  //TODO: figure out how to make this related to rate
-  if (mutation>0.01 || mutation< -0.01){
+  std::uniform_real_distribution<double> dist2(0, 1);
+  mutation = dist2(r);
+  if (mutation<rate){
     tasks.push_back(*select_randomly(resources.begin(), resources.end(), r));
     if(tasks.size() >= host_tasks_lim)
       tasks.erase(std::remove(tasks.begin(), tasks.end(), *select_randomly(tasks.begin(), tasks.end(), r)), tasks.end());
