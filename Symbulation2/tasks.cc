@@ -174,7 +174,7 @@ void Host::update(int sym_mult) {
       //Mean sym is going to keep all donated and steal some more!
       //Calculate how much the sym is stealing from the pool remaining and switch it to positive
       
-      float stolen_glucose;
+      float stolen_glucose=0;
       for (int p=0; p<pools.size(); p++) {
 	//for each pool, sym will steal some and try to digest it, but loses some in the process
 	float stolen = 0;

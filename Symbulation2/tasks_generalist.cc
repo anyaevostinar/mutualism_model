@@ -31,7 +31,7 @@ struct Symbiont {
   float points;
   vector<int> tasks;
 
-  Symbiont() : donation(-2), points(-2) {};
+  Symbiont() : donation(-2), points(0) {};
   Symbiont(float d, float p, vector<int> s) : donation(d), points(p), tasks(s) {};
   Symbiont(float d, vector<int> s) : donation(d), points(0.0), tasks(s) {};
   Symbiont(Symbiont &parent) : donation(parent.donation), points(0.0), tasks(parent.tasks) {};
@@ -63,8 +63,8 @@ void Symbiont::mutate(std::mt19937& r, float rate){
   if(donation < -1) donation = -1;
 
   std::uniform_real_distribution<double> dist2(0, 1);
-  mutation = dist2(r);
-  if (mutation<rate){
+  double mutation2 = dist2(r);
+  if (mutation2<rate){
     tasks.push_back(*select_randomly(resources.begin(), resources.end(), r));
     if (tasks.size() >= sym_tasks_lim)
       tasks.erase(std::remove(tasks.begin(), tasks.end(), *select_randomly(tasks.begin(), tasks.end(), r)), tasks.end());
@@ -109,9 +109,9 @@ void Host::birth(Host parent) {
 }
 
 void Host::update(int sym_mult) {
-  //  std::cout << "---------------------------" << endl;
-  //  std::cout << "start host: " << points << " behave: " << donation << endl;
-  //  std::cout << "start sym: " << sym.points << " behave: " << sym.donation << endl;
+  //std::cout << "---------------------------" << endl;
+  //std::cout << "start host: " << points << " behave: " << donation << endl;
+  //std::cout << "start sym: " << sym.points << " behave: " << sym.donation << endl;
   //we need to have a list of resource pools of 25 each
   std::vector<float> pools;
   for (auto resource : resources){
@@ -127,23 +127,26 @@ void Host::update(int sym_mult) {
       pools[p] -= proportion_donate;
     }
 
+    float glucose = 0;
+    if (sym.donation > -2){
     //Now we go through and let the sym digest whatever it can digest and turn it to glucose
     //This is a holder for the digested resource
-    float glucose = 0;
-    
-    //process resources sym has
-    for(int r=0;r< donation_res.size(); r++){
 
-      //is this a resource the symbiont can digest?
-      if (std::find(sym.tasks.begin(), sym.tasks.end(), r) != sym.tasks.end()){
-	//Yes, sym can digest this resource
-	//Move this resource into glucose
-	glucose += donation_res[r];
-	donation_res[r] = 0;
-      }
-      else{
-	//Sym doesn't touch things that it can't digest
-
+      
+      //process resources sym has
+      for(int r=0;r< donation_res.size(); r++){
+	
+	//is this a resource the symbiont can digest?
+	if (std::find(sym.tasks.begin(), sym.tasks.end(), r) != sym.tasks.end()){
+	  //Yes, sym can digest this resource
+	  //Move this resource into glucose
+	  glucose += donation_res[r];
+	  donation_res[r] = 0;
+	}
+	else{
+	  //Sym doesn't touch things that it can't digest
+	  
+	}
       }      
     }
 
@@ -167,14 +170,14 @@ void Host::update(int sym_mult) {
       points += returned;
     }
 
-    else if (sym.donation < 0) {
+    else if (sym.donation < 0 && sym.donation != -2) {
       //Mean sym is going to keep all donated and steal some more!
       //Calculate how much the sym is stealing from the pool remaining and switch it to positive
       
-      float stolen_glucose;
+      float stolen_glucose=0;
       for (int p=0; p<pools.size(); p++) {
 	//for each pool, sym will steal some and try to digest it, but loses some in the process
-	float stolen;
+	float stolen = 0;
 	stolen += pools[p]*sym.donation * -1; //sym.donation is negative so making stolen positive
 	pools[p] -= stolen;
 
@@ -240,9 +243,9 @@ void Host::update(int sym_mult) {
     }
       
   }
-  //  std::cout << "end host: " << points << endl;
-  //  std::cout << "end sym: " << sym.points << endl;
-  //  std::cout << "--------------------------" << endl;
+  //std::cout << "end host: " << points << endl;
+  //std::cout << "end sym: " << sym.points << endl;
+  //std::cout << "--------------------------" << endl;
 }
 
 int Host::chooseNeighbor(std::mt19937 &r){
@@ -266,8 +269,8 @@ void Host::mutate(std::mt19937& r, double rate){
   if (donation < -1) donation = -1;
 
   std::uniform_real_distribution<double> dist2(0, 1);
-  mutation = dist2(r);
-  if (mutation<rate){
+  double mutation2 = dist2(r);
+  if (mutation2<rate){
     tasks.push_back(*select_randomly(resources.begin(), resources.end(), r));
     if(tasks.size() >= host_tasks_lim)
       tasks.erase(std::remove(tasks.begin(), tasks.end(), *select_randomly(tasks.begin(), tasks.end(), r)), tasks.end());
@@ -372,18 +375,21 @@ void Population::init_pop(int pop_count) {
   //This means we have two random number distributions but that's because the state was getting messed up
   //when I had one for the Population object.... so need to fix that someday
   std::mt19937 engine(seed);
-  std::uniform_real_distribution<double> dist(-1, 1);
+  std::uniform_real_distribution<double> dist(-1,1);
 
   for(int i=0; i<pop_count; ++i){
     vector<int> sym_tasks;
     for(int t= 0; t<sym_tasks_lim; ++t){
-            sym_tasks.push_back(*select_randomly(resources.begin(), resources.end(), engine)); 
+      sym_tasks.push_back(*select_randomly(resources.begin(), resources.end(), engine)); 
+      //sym_tasks.push_back(1);
     }
     Symbiont new_sym(dist(engine), sym_tasks);
     vector<int> host_tasks;
     for(int t=0; t<host_tasks_lim; ++t){
       host_tasks.push_back(*select_randomly(resources.begin(), resources.end(), engine));
+      //host_tasks.push_back(0);
     }
+    
     Host new_org(dist(engine), new_sym, i, host_tasks);
 
     pop.push_back(new_org);
@@ -462,7 +468,8 @@ void Population::evolve(){
       if (org.points >=(10*rec_res)){
         //cout << "Making a host baby!" << endl;
         Host baby(org.donation, 0.0, Symbiont(), -2, org.tasks);
-        if(org.sym.points > 0 && dist(engine) < vert_rate){
+
+        if((org.sym.points >= 0) && org.sym.donation != -2  && (dist(engine) <= vert_rate)){
           //Vertical transmission, TODO: put sym repro in a function
           Symbiont s_baby(org.sym);
 	  if (!ecological) {
@@ -502,7 +509,7 @@ int main(int argc, char *argv[]) {
   else{
   int seed = atoi(argv[1]);
 
-  Population pop(10000, 100000, seed);
+  Population pop(10000, 500000, seed);
   pop.mut_rate = atof(argv[2]);
   //with division of labor, synergy no longer needs to be artificially enforced
   pop.sym_mult = 1;
