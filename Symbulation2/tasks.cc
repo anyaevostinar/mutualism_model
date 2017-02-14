@@ -115,7 +115,7 @@ void Host::update(int sym_mult) {
   //we need to have a list of resource pools of 25 each
   std::vector<float> pools;
   for (auto resource : resources){
-    pools.push_back(50);
+    pools.push_back(25);
   }
   
   if (donation >= 0){
@@ -235,8 +235,8 @@ void Host::update(int sym_mult) {
 	  stolen += temp;
 	  
 	}
-	//Host gets whatever is left in pools after sym attempts to steal
-	points += pools[r];
+	//Host gets half whatever is left in pools after sym attempts to steal
+	points += pools[r] *0.5;
 	pools[r] = 0;
       }
       sym.update(stolen);
@@ -409,7 +409,7 @@ void Population::evolve(){
   std::string str_start = std::to_string(start_rate);
   str_start.erase ( str_start.find_last_not_of('0') + 1, std::string::npos );
   
-  
+
   data_file.open("avg_donation_"+str_seed+"_mut"+str_mut+"_mult"+str_mult+"_vert"+str_vert+"_start"+str_start+".csv", std::ofstream::ate);
   data_file << "Update, Host_Donation, Sym_Donation, Host_Count, Sym_Count" << endl << std::flush;
   sym_file.open("syms_donation_"+str_seed+"_mut"+str_mut+"_mult"+str_mult+"_vert"+str_vert+"_start"+str_start+".csv", std::ofstream::ate);
