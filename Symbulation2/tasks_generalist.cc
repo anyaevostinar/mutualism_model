@@ -236,7 +236,7 @@ void Host::update(int sym_mult) {
 	  
 	}
 	//Host gets whatever is left in pools after sym attempts to steal
-	points += pools[r];
+	points += pools[r] * 0.5;
 	pools[r] = 0;
       }
       sym.update(stolen);
