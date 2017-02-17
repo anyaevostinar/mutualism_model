@@ -6,7 +6,8 @@
 #include<algorithm>
 #include<iterator>
 #include<set>
-
+#include "../../Empirical/tools/vector.h"
+#include "../../Empirical/tools/functions.h"
 using std::cout; using std::endl;
 using std::vector;
 using std::set;
@@ -20,6 +21,7 @@ int sym_tasks_lim = 1;
 //Code from http://stackoverflow.com/questions/6942273/get-random-element-from-container
 template<typename Iter, typename RandomGenerator>
 Iter select_randomly(Iter start, Iter end, RandomGenerator& g) {
+  assert(start != end);
   std::uniform_int_distribution<> dis(0, std::distance(start, end) - 1);
   std::advance(start, dis(g));
   return start;
@@ -249,32 +251,29 @@ void Host::update(int sym_mult) {
 }
 
 int Host::chooseNeighbor(std::mt19937 &r){
-
-  int radius = 1;
+  
+  //TODO: use emp::Mod since it is proper mathematical mod!!!!!!!!
+  constexpr int radius = 1;
+  emp_assert(radius <= POP_X && radius <= POP_Y);
+  emp_assert(cell_id >=0 && cell_id < POP_X * POP_Y, cell_id);
   int cell_x = cell_id % POP_X;
   int cell_y = (cell_id - cell_x)/POP_Y;
-  vector<int> neighbor_ids;
-  int x = 0;
-  int y = 0;
+  emp::vector<int> neighbor_ids;
 
+  emp_assert(POP_X * POP_Y > 1, POP_X, POP_Y);
 
   for(int i=cell_x-radius; i<=cell_x+radius; i++){
+    const int x = emp::Mod(i, POP_X);
+
     for(int j=cell_y-radius; j<=cell_y+radius; j++){
-      if(cell_y ==0 && cell_x == 0) continue;
+      if(i ==0 && j == 0) continue;
+      const int y = emp::Mod(j, POP_Y);
 
-      if(i<0) x = POP_X + i;
-      else if(i>=POP_X) x = i-POP_X;
-      else x = i;
-
-      if(j<0) y = POP_Y + j;
-      else if(j>=POP_Y) y = j-POP_Y;
-      else y = j;
-
-      neighbor_ids.push_back(y*POP_X+x);
+      neighbor_ids.push_back((y*POP_X+x));
     }
   }
 
-
+  emp_assert(neighbor_ids.size(), neighbor_ids.size());
   return(*select_randomly(neighbor_ids.begin(), neighbor_ids.end(), r));  
 }
 
