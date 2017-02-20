@@ -7,7 +7,7 @@
 #include<iterator>
 #include<set>
 #include "../../Empirical/tools/vector.h"
-#include "../../Empirical/tools/functions.h"
+#include "../../Empirical/tools/math.h"
 using std::cout; using std::endl;
 using std::vector;
 using std::set;
@@ -21,7 +21,6 @@ int sym_tasks_lim = 1;
 //Code from http://stackoverflow.com/questions/6942273/get-random-element-from-container
 template<typename Iter, typename RandomGenerator>
 Iter select_randomly(Iter start, Iter end, RandomGenerator& g) {
-  assert(start != end);
   std::uniform_int_distribution<> dis(0, std::distance(start, end) - 1);
   std::advance(start, dis(g));
   return start;
@@ -111,9 +110,11 @@ void Host::birth(Host parent) {
 }
 
 void Host::update(int sym_mult) {
-  //std::cout << "---------------------------" << endl;
+  //  std::cout << "---------------------------" << endl;
   //std::cout << "start host: " << points << " behave: " << donation << endl;
   //std::cout << "start sym: " << sym.points << " behave: " << sym.donation << endl;
+  float host_start = points;
+  float sym_start = sym.points;
   //we need to have a list of resource pools of 25 each
   std::vector<float> pools;
   for (auto resource : resources){
@@ -178,17 +179,14 @@ void Host::update(int sym_mult) {
       
       float stolen_glucose=0;
       for (int p=0; p<pools.size(); p++) {
-	//for each pool, sym will steal some and try to digest it, but loses some in the process
-	float stolen = 0;
-	stolen += pools[p]*sym.donation * -1; //sym.donation is negative so making stolen positive
-	pools[p] -= stolen;
-
+	//Can sym efficiently digest this resource and therefore steal it?
 	if (std::find(sym.tasks.begin(), sym.tasks.end(), p) != sym.tasks.end()){
-	  //Can sym efficiently digest this resource?
+	  //for each pool, sym will steal some and try to digest it, but loses some in the process
+	  float stolen = 0;
+	  stolen += pools[p]*sym.donation * -1; //sym.donation is negative so making stolen positive
+	  pools[p] -= stolen;
+
 	  stolen_glucose += stolen;
-	} else {
-	  //Sym only able to get some of the energy out
-	  //stolen_glucose += stolen*0.25;
 	}
       }
       //Give sym its donated and stolen resources, the meanie!
@@ -205,13 +203,17 @@ void Host::update(int sym_mult) {
     }
   }
   else if (donation < 0) {
-    //for each resource, if the host has a specialty defense (ie task) it gets that resource, completely protected
+    //for each resource, if the host has a specialty defense (ie task) it gets that resource, completely protected, otherwise general defense is used and there is a cost
     for(int p=0; p<pools.size(); p++){
       if (std::find(tasks.begin(), tasks.end(), p) != tasks.end()){
 	points += pools[p];
 	pools[p] = 0;
+      } else {
+	pools[p] = pools[p] * (1+donation);
       }
     }
+    
+
     if (sym.donation != -2 && sym.donation < 0) {
     //Need to at some point fix how I represent an absent sym, but for now -2 means there isn't one
     //mean sym in a defensive host, fight fight fight!
@@ -229,7 +231,6 @@ void Host::update(int sym_mult) {
       //Host and symbiont general defense and attack for non-specialty resources, ie whatever is left
       for(int r=0; r< pools.size(); r++){
 	//Host uses up resources for defense ex: defense is -0.1, 1+ -0.1 = 0.9, resource * .9 is what is left to fight over
-	pools[r] = pools[r] * (1 + donation);
 	if(sym.donation < donation){
         //Sym is able to steal from the battle pools proportionally to how much meaner it is
 	  float temp = pools[r] *(sym.donation - donation) * -1; //flipping the negative to make things clearer
@@ -242,17 +243,30 @@ void Host::update(int sym_mult) {
 	pools[r] = 0;
       }
       sym.update(stolen);
+    } else if (sym.donation > 0){
+      //Nice sym is just trying to get along, digests the resources host makes available and gives some back to try to be friends :3
+      //TODO: refactor so that sym digesting resources is its own function since this code appears twice
+      float glucose = 0;
+      for (int r=0; r< pools.size(); r++){
+	if (std::find(sym.tasks.begin(), sym.tasks.end(), r) != sym.tasks.end()){
+	  glucose += pools[r];
+	  pools[r] = 0;
+	}
+      }
+      float returned = (glucose * sym.donation);
+      sym.update(glucose - returned);
+      points += returned;
+
     }
       
   }
-  //std::cout << "end host: " << points << endl;
-  //std::cout << "end sym: " << sym.points << endl;
+  //std::cout << "diff host: " << points - host_start << endl;
+  //std::cout << "diff sym: " << sym.points - sym_start << endl;
   //std::cout << "--------------------------" << endl;
 }
 
 int Host::chooseNeighbor(std::mt19937 &r){
-  
-  //TODO: use emp::Mod since it is proper mathematical mod!!!!!!!!
+
   constexpr int radius = 1;
   emp_assert(radius <= POP_X && radius <= POP_Y);
   emp_assert(cell_id >=0 && cell_id < POP_X * POP_Y, cell_id);
@@ -274,7 +288,7 @@ int Host::chooseNeighbor(std::mt19937 &r){
   }
 
   emp_assert(neighbor_ids.size(), neighbor_ids.size());
-  return(*select_randomly(neighbor_ids.begin(), neighbor_ids.end(), r));  
+  return(*select_randomly(neighbor_ids.begin(), neighbor_ids.end(), r));
 }
 
 void Host::mutate(std::mt19937& r, double rate){
@@ -396,8 +410,10 @@ void Population::init_pop(int pop_count) {
   assert(pop_count == POP_X * POP_Y);
   //This means we have two random number distributions but that's because the state was getting messed up
   //when I had one for the Population object.... so need to fix that someday
+
   std::mt19937 engine(seed);
-  std::uniform_real_distribution<double> dist(-1,1);
+  std::uniform_real_distribution<double> dist(-1,1); //sym
+  std::uniform_real_distribution<double> dist2(-1,1); //host
 
   for(int i=0; i<pop_count; ++i){
     vector<int> sym_tasks;
@@ -412,7 +428,7 @@ void Population::init_pop(int pop_count) {
       //host_tasks.push_back(0);
     }
     
-    Host new_org(dist(engine), new_sym, i, host_tasks);
+    Host new_org(dist2(engine), new_sym, i, host_tasks);
 
     pop.push_back(new_org);
 
