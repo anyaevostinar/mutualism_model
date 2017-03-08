@@ -327,7 +327,10 @@ struct Population{
   float mut_rate; // Mutation Rate
   int sym_mult; // Multiplication factor for symbionts
   float start_rate; // Donation rate the initial orgs start at
+  bool movie = false;
   std::mt19937 engine;
+  std::ofstream sym_map;
+  std::ofstream host_map;
   std::ofstream data_file;
   std::ofstream sym_file;
   std::ofstream host_file;
@@ -353,23 +356,29 @@ void Population::print_stats() {
   int host_count = 0;
   int sym_count = 0;
   //figure out avg host and sym donations
+  int sym_donate = 10000;
+  int host_donate = 100000;
 
   std::vector<int> sym_dists(21, 0);
   std::vector<int> host_dists(21, 0);
   int res_size = resources.size();
   std::vector<int> tasks(2*res_size, 0);
 
+  if (movie) {
+    host_map << cur_update << ", {";
+    sym_map << cur_update << ", {";
+  }
 
   for(auto org : pop){
     host_count++;
     host_sum += org.donation;
-    int host_donate = (org.donation) * 10 + 10;
+    host_donate = (org.donation) * 10 + 10;
     host_dists[host_donate] += 1;
     for(auto task : org.tasks){
       tasks[task] += 1;
     }
     if(org.sym.donation > -2){
-      int sym_donate = (org.sym.donation * 10) + 10;
+      sym_donate = (org.sym.donation * 10) + 10;
       sym_count++;
       sym_sum += org.sym.donation;
       sym_dists[sym_donate] +=1;
@@ -377,8 +386,27 @@ void Population::print_stats() {
 	tasks[task+res_size] += 1;
       }
     }
+    if (movie){
+      if (org.sym.donation != -2) sym_donate = (org.sym.donation * 10) + 10;
+      else sym_donate = -100;
+
+      cout << (org.cell_id) << " " << (org.cell_id % POP_X) << " " << ((org.cell_id % POP_X) == (POP_X -1)) << endl;
+      if (org.cell_id % POP_X == 0) {
+	host_map << "[";
+	sym_map << "[";
+      }
+      host_map << host_donate << ", ";
+      sym_map << sym_donate << ", ";
+      if ((org.cell_id % POP_X) == (POP_X-1)){
+	host_map <<"],";
+	sym_map << "],";
+      }
+     
+    }
   }
-  
+  host_map << "] }\n";
+  sym_map << "] }\n";
+
   //cout << cur_update <<", "<< host_sum/host_count << ", " << sym_sum/sym_count << ", " << host_count << ", " << sym_count << endl <<std::flush;
   data_file << cur_update <<", "<< host_sum/host_count << ", " << sym_sum/sym_count << ", " << host_count << ", " << sym_count << endl << std::flush;
   
@@ -454,6 +482,12 @@ void Population::evolve(){
   sym_file << "Update, -1_-.9 -.9_-.8 -.8_-.7 -.7_-.6 -.6_-.5 -.5_-.4 -.4_-.3 -.3_-.2 -.2_-.1 -.1_0 0_.1 .1_.2 .2_.3 .3_.4 .4_.5 .5_.6 .6_.7 .7_.8 .8_.9 .9_1 1" << endl << std::flush;
   host_file.open("hosts_donation_"+str_seed+"_mut"+str_mut+"_mult"+str_mult+"_vert"+str_vert+"_start"+str_start+".csv", std::ofstream::ate);
   host_file << "Update, -1_-.9 -.9_-.8 -.8_-.7 -.7_-.6 -.6_-.5 -.5_-.4 -.4_-.3 -.3_-.2 -.2_-.1 -.1_0 0_.1 .1_.2 .2_.3 .3_.4 .4_.5 .5_.6 .6_.7 .7_.8 .8_.9 .9_1 1" << endl << std::flush;
+  if (movie){
+    sym_map.open("sym_map_"+str_seed+"_vert"+str_vert+".map");
+    host_map.open("host_map_"+str_seed+"_vert"+str_vert+".map");
+    sym_map << "update, state" << endl << std::flush;
+    host_map << "update, state" << endl << std::flush;
+  }
   tasks_file.open("tasks_"+str_seed+"_mut"+str_mut+"_mult"+str_mult+"_vert"+str_vert+"_start"+str_start+".csv", std::ofstream::ate);
   tasks_file << "Update";
   for(auto resource : resources){
@@ -543,7 +577,7 @@ void Population::evolve(){
 
 
 int main(int argc, char *argv[]) {
-  if (argc < 4) cout << "Usage: seed mut vert" << endl;
+  if (argc < 5) cout << "Usage: seed mut vert movie(0/1)" << endl;
   else{
   int seed = atoi(argv[1]);
 
@@ -552,6 +586,10 @@ int main(int argc, char *argv[]) {
   //with division of labor, synergy no longer needs to be artificially enforced
   pop.sym_mult = 1;
   pop.vert_rate = atof(argv[3]);
+  if (atoi(argv[4]) == 1){
+    pop.movie = true;
+    cout << "Making movie files" << endl;
+  }else cout << "Not making movie files" << endl;
 
   pop.evolve();}
 
