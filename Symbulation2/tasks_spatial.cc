@@ -575,7 +575,7 @@ void Population::evolve(){
   sym_file.close();
   host_file.close();
   sym_map.close();
-  host_map.close()
+  host_map.close();
 }
 
 
