@@ -364,7 +364,7 @@ void Population::print_stats() {
   int res_size = resources.size();
   std::vector<int> tasks(2*res_size, 0);
 
-  if (movie) {
+  if (movie and (cur_update % 1000==0)) {
     host_map << cur_update << ", {";
     sym_map << cur_update << ", {";
   }
@@ -386,11 +386,11 @@ void Population::print_stats() {
 	tasks[task+res_size] += 1;
       }
     }
-    if (movie){
+    if (movie and (cur_update % 1000 == 0)){
       if (org.sym.donation != -2) sym_donate = (org.sym.donation * 10) + 10;
       else sym_donate = -100;
 
-      cout << (org.cell_id) << " " << (org.cell_id % POP_X) << " " << ((org.cell_id % POP_X) == (POP_X -1)) << endl;
+      //cout << (org.cell_id) << " " << (org.cell_id % POP_X) << " " << ((org.cell_id % POP_X) == (POP_X -1)) << endl;
       if (org.cell_id % POP_X == 0) {
 	host_map << "[";
 	sym_map << "[";
@@ -404,8 +404,10 @@ void Population::print_stats() {
      
     }
   }
-  host_map << "] }\n";
-  sym_map << "] }\n";
+  if (movie and (cur_update % 1000==0)) {
+    host_map << "] }\n";
+    sym_map << "] }\n";
+  }
 
   //cout << cur_update <<", "<< host_sum/host_count << ", " << sym_sum/sym_count << ", " << host_count << ", " << sym_count << endl <<std::flush;
   data_file << cur_update <<", "<< host_sum/host_count << ", " << sym_sum/sym_count << ", " << host_count << ", " << sym_count << endl << std::flush;
@@ -572,6 +574,8 @@ void Population::evolve(){
   data_file.close();
   sym_file.close();
   host_file.close();
+  sym_map.close();
+  host_map.close()
 }
 
 
