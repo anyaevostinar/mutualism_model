@@ -108,10 +108,11 @@ void Host::birth(Host parent) {
   tasks = parent.tasks;
 }
 
+
 void Host::update(int sym_mult) {
-  //  std::cout << "---------------------------" << endl;
-  //std::cout << "start host: " << points << " behave: " << donation << endl;
-  //std::cout << "start sym: " << sym.points << " behave: " << sym.donation << endl;
+  ///  std::cout << "---------------------------" << endl;
+  ///  std::cout << "start host: " << points << " behave: " << donation << endl;
+  ///  std::cout << "start sym: " << sym.points << " behave: " << sym.donation << endl;
   float host_start = points;
   float sym_start = sym.points;
   //we need to have a list of resource pools of 25 each
@@ -121,147 +122,120 @@ void Host::update(int sym_mult) {
   }
   
   if (donation >= 0){
-    //Donate resources, keep some for reproduction
-    std::vector<float> donation_res;
-    for (int p = 0; p < pools.size(); p++){
-      float proportion_donate = donation*pools[p];
-      donation_res.push_back(proportion_donate);
-      pools[p] -= proportion_donate;
-    }
-
-    float glucose = 0;
-    if (sym.donation > -2){
-    //Now we go through and let the sym digest whatever it can digest and turn it to glucose
-    //This is a holder for the digested resource
-
-      
-      //process resources sym has
-      for(int r=0;r< donation_res.size(); r++){
-	
-	//is this a resource the symbiont can digest?
-	if (std::find(sym.tasks.begin(), sym.tasks.end(), r) != sym.tasks.end()){
-	  //Yes, sym can digest this resource
-	  //Move this resource into glucose
-	  glucose += donation_res[r];
-	  donation_res[r] = 0;
+    if (sym.donation == -2) {
+      for(int p=0; p<pools.size(); p++){
+	if (std::find(tasks.begin(), tasks.end(), p) != tasks.end()){
+	  points += pools[p];
+	  pools[p] = 0;
+	} else{
+	  points += (1-donation) * pools[p] * 0.5; //host wastes some
+	  pools[p] -= pools[p] * (1-donation);
 	}
-	else{
-	  //Sym doesn't touch things that it can't digest
-	  
-	}
-      }      
-    }
-
-    
-    if(sym.donation >= 0 ) {
-        //Sym is nice so it won't steal
-        //If donation is more than zero, some returned to host
-        //If donation is zero, nothing returned and sym keeps all donated but doesn't steal
-
-      //Resources the symbiont couldn't digest are still sitting in donation_res and will go back to host if nice sym
-      for (int p=0; p<pools.size(); p++){
-	pools[p] += donation_res[p];
-	donation_res[p] = 0; //this isn't used again, but just in case
       }
-
-      //Amount of glucose going back to host
-      float returned = (glucose*sym.donation);
-      //Sym gets its remaining glucose
-      sym.update(glucose - returned);
-      //Host gets the glucose from symbiont
-      points += returned;
-    }
-
-    else if (sym.donation < 0 && sym.donation != -2) {
-      //Mean sym is going to keep all donated and steal some more!
-      //Calculate how much the sym is stealing from the pool remaining and switch it to positive
+    } else if (sym.donation>=0){
+      for(int p=0; p<pools.size(); p++){
+	if (std::find(tasks.begin(), tasks.end(), p) != tasks.end()){
+	  points += pools[p];
+	  pools[p] = 0;
+	} else{
+	  points += (1-donation) * pools[p] * 0.5; //host wastes some
+	  pools[p] -= pools[p] * (1-donation);
+	}
+      }
+      for(int p=0; p<pools.size(); p++){
+	if(std::find(sym.tasks.begin(), sym.tasks.end(), p) != sym.tasks.end()){
+	  points += pools[p] * donation * sym.donation;
+	  pools[p] -= pools[p] * donation * sym.donation;
+	  sym.update(pools[p]);
+	  pools[p] = 0;
+	}
+      }
+    } else if (sym.donation<0){
+      for(int p=0; p<pools.size(); p++){
+	if(std::find(sym.tasks.begin(), sym.tasks.end(), p) != sym.tasks.end()){
+	  sym.update(pools[p]);
+	  pools[p] = 0;
+	}
+	if (std::find(tasks.begin(), tasks.end(), p) != tasks.end()){
+	  sym.update(pools[p]*(-sym.donation));
+	  pools[p] += pools[p]*sym.donation;
+	  points += pools[p]*(1-donation);
+	  pools[p] = 0;
+	}
+      }
+    } 
+  } else if (donation < 0){
+    if (sym.donation == -2){
+      for(int p=0; p<pools.size(); p++){
+	if (!(std::find(tasks.begin(), tasks.end(), p) != tasks.end())){
+	  pools[p] += donation*pools[p]; //general resources wasted for speciality
+	}else{
+	  points += pools[p] * 0.5;
+	}
+      }
       
-      float stolen_glucose=0;
-      for (int p=0; p<pools.size(); p++) {
-	//Can sym efficiently digest this resource and therefore steal it?
+    } else if(sym.donation < 0){
+      for(int p=0; p<pools.size(); p++){
+	if (!(std::find(tasks.begin(), tasks.end(), p) != tasks.end())){
+	  pools[p] += donation*pools[p]; //general resources wasted for speciality
+	}
+      }
+      if (sym.donation < donation){
+	for(int p=0; p<pools.size(); p++){
+	  if (std::find(tasks.begin(), tasks.end(), p) != tasks.end()){
+	    pools[p] += pools[p] * (sym.donation-donation); //sym wastes some
+	    
+	  }if(std::find(sym.tasks.begin(), sym.tasks.end(), p) != sym.tasks.end()){
+	    sym.update(pools[p]*(-sym.donation));
+	    pools[p] += pools[p] * sym.donation;
+	  }
+	    
+	}
+      }else{
+	for(int p=0; p<pools.size(); p++){
+	  if(std::find(sym.tasks.begin(), sym.tasks.end(), p) != sym.tasks.end()){
+	    sym.update(pools[p]*0.5);
+	    points += pools[p] * 0.5;
+	    pools[p] = 0;
+	  }
+	}
+      }
+      for(int p=0; p<pools.size(); p++){
+	if (std::find(tasks.begin(), tasks.end(), p) != tasks.end()){
+	  points += pools[p];
+	  pools[p] = 0;
+	}
 	if (std::find(sym.tasks.begin(), sym.tasks.end(), p) != sym.tasks.end()){
-	  //for each pool, sym will steal some and try to digest it, but loses some in the process
-	  float stolen = 0;
-	  stolen += pools[p]*sym.donation * -1; //sym.donation is negative so making stolen positive
-	  pools[p] -= stolen;
-
-	  stolen_glucose += stolen;
+	  sym.update(pools[p]);
+	  pools[p] = 0;
+	}	
+      }
+    } else if(sym.donation >=0){
+      for(int p=0; p<pools.size(); p++){
+	if (std::find(tasks.begin(), tasks.end(), p) != tasks.end()){
+	  points += pools[p] * (1+donation);
+	  pools[p] = 0;
+	}else{
+	  pools[p] += pools[p]*donation; //general resources spent on defense
+	}
+	if (std::find(sym.tasks.begin(), sym.tasks.end(), p) != sym.tasks.end()){
+	  pools[p] = pools[p] * 0.5; //sym fighting to get to resources loses some
+	  points += pools[p] * sym.donation;
+	  pools[p] -= pools[p] * sym.donation;
+	  sym.update(pools[p]);
+	  pools[p]=0;
 	}
       }
-      //Give sym its donated and stolen resources, the meanie!
-      sym.update(glucose+stolen_glucose);
-    }
-
-    //Host gets to try to digest whatever was left, but wastes anything it can't digest
-    for (int r=0; r<pools.size(); r++){
-      if (std::find(tasks.begin(), tasks.end(), r) != tasks.end()){
-	points += pools[r];
-      } else{
-	//Host can't digest efficiently, wastes
-      }
-    }
-  }
-  else if (donation < 0) {
-    //for each resource, if the host has a specialty defense (ie task) it gets that resource, completely protected, otherwise general defense is used and there is a cost
-    for(int p=0; p<pools.size(); p++){
-      if (std::find(tasks.begin(), tasks.end(), p) != tasks.end()){
-	points += pools[p];
-	pools[p] = 0;
-      } else {
-	pools[p] = pools[p] * (1+donation);
-      }
-    }
-    
-
-    if (sym.donation != -2 && sym.donation < 0) {
-    //Need to at some point fix how I represent an absent sym, but for now -2 means there isn't one
-    //mean sym in a defensive host, fight fight fight!
-
-      //Sym gets any specialty attack that the host didn't specialty defend
-      float stolen = 0;
-      //determines if sym has tasks host doesn't
-      for(int r=0; r<pools.size(); r++){
-	if(std::find(sym.tasks.begin(), sym.tasks.end(), r) != sym.tasks.end()){
-	  stolen += pools[r];
-	  pools[r] = 0;
-	}
-      }
-
-      //Host and symbiont general defense and attack for non-specialty resources, ie whatever is left
-      for(int r=0; r< pools.size(); r++){
-	//Host uses up resources for defense ex: defense is -0.1, 1+ -0.1 = 0.9, resource * .9 is what is left to fight over
-	if(sym.donation < donation){
-        //Sym is able to steal from the battle pools proportionally to how much meaner it is
-	  float temp = pools[r] *(sym.donation - donation) * -1; //flipping the negative to make things clearer
-	  pools[r] -= temp;
-	  stolen += temp;
-	  
-	}
-	//Host gets half whatever is left in pools after sym attempts to steal
-	points += pools[r] *0.5;
-	pools[r] = 0;
-      }
-      sym.update(stolen);
-    } else if (sym.donation > 0){
-      //Nice sym is just trying to get along, digests the resources host makes available and gives some back to try to be friends :3
-      //TODO: refactor so that sym digesting resources is its own function since this code appears twice
-      float glucose = 0;
-      for (int r=0; r< pools.size(); r++){
-	if (std::find(sym.tasks.begin(), sym.tasks.end(), r) != sym.tasks.end()){
-	  glucose += pools[r];
-	  pools[r] = 0;
-	}
-      }
-      float returned = (glucose * sym.donation);
-      sym.update(glucose - returned);
-      points += returned;
-
-    }
+    } else{
+      cout << "Error in host update, no matching condition for symbiont." << endl;
       
-  }
-  //std::cout << "diff host: " << points - host_start << endl;
-  //std::cout << "diff sym: " << sym.points - sym_start << endl;
-  //std::cout << "--------------------------" << endl;
+    }
+  } else
+    cout << "Error in host update, no matching condition for host." << endl;
+
+  ///  std::cout << "diff host: " << points - host_start << endl;                  
+  ///  std::cout << "diff sym: " << sym.points - sym_start << endl;
+  ///  std::cout << "--------------------------" << endl;   
 }
 
 int Host::chooseNeighbor(std::mt19937 &r){
@@ -306,7 +280,7 @@ struct Population{
   float vert_rate; // Vertical transmission rate
   float mut_rate; // Mutation Rate
   int sym_mult; // Multiplication factor for symbionts
-  float start_rate; // Donation rate the initial orgs start at
+  float start_rate=0; // Donation rate the initial orgs start at
   bool movie = false;
   std::mt19937 engine;
   std::ofstream sym_map;
@@ -430,9 +404,10 @@ void Population::init_pop(int pop_count) {
     vector<int> sym_tasks;
     for(int t= 0; t<sym_tasks_lim; ++t){
       sym_tasks.push_back(*select_randomly(resources.begin(), resources.end(), engine)); 
-      //sym_tasks.push_back(1);
+      //      sym_tasks.push_back(0);
     }
     Symbiont new_sym(dist(engine), sym_tasks);
+    //Symbiont new_sym(-1.0, sym_tasks);
     vector<int> host_tasks;
     for(int t=0; t<host_tasks_lim; ++t){
       host_tasks.push_back(*select_randomly(resources.begin(), resources.end(), engine));
@@ -440,6 +415,7 @@ void Population::init_pop(int pop_count) {
     }
     
     Host new_org(dist2(engine), new_sym, i, host_tasks);
+    //Host new_org(-0.9, new_sym, i, host_tasks);
 
     pop.push_back(new_org);
 
